@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --bg: 15 15 16;
+  --card: 26 26 29;
+  --text: 224 224 224;
+  --primary: 212 175 55; /* dorado */
+  --accent: 138 3 3;    /* rojo */
+  --border: 51 51 51;
+}
+
+[data-theme="light"]{
+  --bg: 245 245 247;
+  --card: 255 255 255;
+  --text: 24 24 28;
+  --border: 220 220 220;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background: rgb(var(--bg));
+  color: rgb(var(--text));
+  min-height:100vh;
+}
+
+::selection{ background: rgba(var(--accent), .65); color: #fff; }
+
+.dnd-shell::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  box-shadow: inset 0 0 150px rgba(0,0,0,.88);
+  z-index:-2;
+}
+
+.fog{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-3;
+  overflow:hidden;
+}
+.fog::before, .fog::after{
+  content:"";
+  position:absolute;
+  top:0; left:0;
+  width:300vw;
+  height:100vh;
+  background:url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png') repeat-x;
+  background-size:contain;
+  opacity:.28;
+  animation:fogAnim 60s linear infinite;
+}
+.fog::after{
+  opacity:.18;
+  animation-direction:reverse;
+  animation-duration:42s;
+}
+
+@keyframes fogAnim{
+  0%{ transform:translate3d(0,0,0); }
+  100%{ transform:translate3d(-200vw,0,0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+  .fog{display:none}
+}
