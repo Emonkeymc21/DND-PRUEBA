@@ -184,13 +184,13 @@ function MiniQuiz() {
 
   const cur = questions[step];
 
-  function addScore(target: Record<string, number>, add: Record<string, number>) {
+  function addScore(target: Record<string, number>, add: Record<string, number | undefined>) {
     const next = { ...target };
     for (const k of Object.keys(add)) next[k] = (next[k] ?? 0) + (add[k] ?? 0);
     return next;
   }
 
-  function pick(v: Record<string, number>) {
+  function pick(v: Record<string, number | undefined>) {
     if (cur.kind === "class") setCls((s) => addScore(s, v));
     else setRace((s) => addScore(s, v));
     setStep((s) => Math.min(questions.length, s + 1));
