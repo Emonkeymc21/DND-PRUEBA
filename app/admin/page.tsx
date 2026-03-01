@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { isAdminRequest } from "@/lib/auth";
 import AdminClient from "@/components/admin/admin-client";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin" };
 
 export default function AdminPage() {

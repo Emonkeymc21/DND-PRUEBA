@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui";
 import AdminLoginForm from "@/components/admin/admin-login-form";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin login" };
 
 export default function AdminLogin() {
@@ -10,7 +11,7 @@ export default function AdminLogin() {
       <Card>
         <AdminLoginForm />
         <p className="mt-3 text-xs text-text/70">
-          Seguridad simple por contraseña en <code className="rounded bg-black/40 px-1 py-0.5">ADMIN_PASSWORD</code>. (Gratis y rápido)
+          Seguridad simple por contraseña en <code className="rounded bg-black/40 px-1 py-0.5">ADMIN_PASSWORD</code>.
         </p>
       </Card>
     </div>

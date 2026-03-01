@@ -3,6 +3,7 @@ import { Card, Button } from "@/components/ui";
 import RegistrationForm from "@/components/campaigns/registration-form";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Inscripción" };
 
 async function getCampaign(slug: string) {
