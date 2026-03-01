@@ -35,3 +35,6 @@ function YouTubeLite({ id, title }: { id: string; title: string }) {
 export function YouTubeEmbed({ id, title }: { id: string; title: string }) {
   return <YouTubeLite id={id} title={title} />;
 }
+
+
+export default YouTubeEmbed;
