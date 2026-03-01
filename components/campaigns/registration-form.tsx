@@ -70,32 +70,32 @@ export default function RegistrationForm({ campaignId }: { campaignId: number })
     <form onSubmit={onSubmit} className="grid gap-4 md:grid-cols-2">
       <label className="text-sm md:col-span-1">
         <div className="mb-1 font-semibold text-primary">Nombre y apellido *</div>
-        <input name="fullName" required className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" />
+        <input name="fullName" required className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" />
       </label>
 
       <label className="text-sm md:col-span-1">
         <div className="mb-1 font-semibold text-primary">Edad (opcional)</div>
-        <input name="age" type="number" min={0} max={120} className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" />
+        <input name="age" type="number" min={0} max={120} className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" />
       </label>
 
       <label className="text-sm md:col-span-1">
         <div className="mb-1 font-semibold text-primary">Discord/WhatsApp *</div>
-        <input name="contact" required className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="@usuario / +54..." />
+        <input name="contact" required className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="@usuario / +54..." />
       </label>
 
       <label className="text-sm md:col-span-1">
         <div className="mb-1 font-semibold text-primary">Zona/País *</div>
-        <input name="country" required className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="Mendoza, Argentina" />
+        <input name="country" required className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="Mendoza, Argentina" />
       </label>
 
       <label className="text-sm md:col-span-2">
         <div className="mb-1 font-semibold text-primary">Disponibilidad horaria *</div>
-        <input name="availability" required className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="Vie 20hs / Sáb tarde / ..." />
+        <input name="availability" required className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="Vie 20hs / Sáb tarde / ..." />
       </label>
 
       <label className="text-sm">
         <div className="mb-1 font-semibold text-primary">Experiencia *</div>
-        <select name="experience" className="w-full rounded-md border border-border/60 bg-bg px-3 py-2">
+        <select name="experience" className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base">
           <option value="nuevo">Nuevo</option>
           <option value="intermedio">Intermedio</option>
           <option value="avanzado">Avanzado</option>
@@ -104,7 +104,7 @@ export default function RegistrationForm({ campaignId }: { campaignId: number })
 
       <label className="text-sm">
         <div className="mb-1 font-semibold text-primary">Rol deseado *</div>
-        <select name="desiredRole" className="w-full rounded-md border border-border/60 bg-bg px-3 py-2">
+        <select name="desiredRole" className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base">
           <option value="jugador">Jugador</option>
           <option value="dm">DM</option>
           <option value="flexible">Flexible</option>
@@ -113,12 +113,12 @@ export default function RegistrationForm({ campaignId }: { campaignId: number })
 
       <label className="text-sm md:col-span-2">
         <div className="mb-1 font-semibold text-primary">Preferencias de campaña *</div>
-        <textarea name="preferences" required rows={3} className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="Horror, épica, humor, misterio..." />
+        <textarea name="preferences" required rows={3} className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="Horror, épica, humor, misterio..." />
       </label>
 
       <label className="text-sm md:col-span-2">
         <div className="mb-1 font-semibold text-primary">Límites / líneas y velos (opcional)</div>
-        <textarea name="linesVeils" rows={3} className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="Campo sensible: lo usamos para cuidarte en mesa." />
+        <textarea name="linesVeils" rows={3} className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="Campo sensible: lo usamos para cuidarte en mesa." />
         <div className="mt-1 text-xs text-text/70">
           Disclaimer: Este campo es sensible. No compartas datos personales innecesarios.
         </div>
@@ -126,7 +126,7 @@ export default function RegistrationForm({ campaignId }: { campaignId: number })
 
       <label className="text-sm md:col-span-2">
         <div className="mb-1 font-semibold text-primary">Link JSON de personaje (opcional)</div>
-        <input name="characterJsonUrl" className="w-full rounded-md border border-border/60 bg-bg px-3 py-2" placeholder="https://..." />
+        <input name="characterJsonUrl" className="w-full rounded-md border border-border/60 bg-bg px-4 py-3 text-base" placeholder="https://..." />
       </label>
 
       <div className="md:col-span-2 flex flex-wrap items-center gap-3">

@@ -93,16 +93,16 @@ export default function AdminClient() {
 
   return (
     <div className="space-y-4">
-      <Card className="flex flex-wrap items-center justify-between gap-3">
+      <Card className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <input
-            className="rounded-md border border-border/60 bg-bg px-3 py-2 text-sm"
+            className="w-full sm:w-80 rounded-md border border-border/60 bg-bg px-4 py-3 text-base"
             placeholder="Buscar (nombre, contacto, país, campaña)…"
             value={q}
             onChange={(e)=>setQ(e.target.value)}
           />
           <select
-            className="rounded-md border border-border/60 bg-bg px-3 py-2 text-sm"
+            className="w-full sm:w-80 rounded-md border border-border/60 bg-bg px-4 py-3 text-base"
             value={onlyOpen}
             onChange={(e)=>setOnlyOpen(e.target.value as any)}
             aria-label="Filtro"
@@ -112,7 +112,7 @@ export default function AdminClient() {
             <option value="contacted">Contactados</option>
           </select>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button type="button" onClick={exportCSV} variant="ghost">Exportar CSV</Button>
           <Button type="button" onClick={load} variant="ghost">Refrescar</Button>
           <Button type="button" onClick={logout} variant="ghost">Salir</Button>
@@ -142,8 +142,8 @@ export default function AdminClient() {
                 <tr key={r.id} className="border-t border-border/50 hover:bg-black/20">
                   <td className="p-2">{new Date(r.created_at).toLocaleString()}</td>
                   <td className="p-2">{r.campaign_title ?? "—"}</td>
-                  <td className="p-2">{r.full_name}</td>
-                  <td className="p-2">{r.contact}</td>
+                  <td className="p-2 break-words">{r.full_name}</td>
+                  <td className="p-2 break-words">{r.contact}</td>
                   <td className="p-2">{r.country}</td>
                   <td className="p-2">
                     <button
