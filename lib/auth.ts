@@ -2,17 +2,25 @@ import { cookies } from "next/headers";
 
 const COOKIE = "dnd_admin";
 
-export function isAdminRequest() {
+/**
+ * Next 15 puede tipar cookies() como Promise<ReadonlyRequestCookies>.
+ * `await` funciona tanto si devuelve Promise como si devuelve el objeto directo.
+ */
+export async function isAdminRequest() {
   const pass = process.env.ADMIN_PASSWORD;
   if (!pass) return false;
-  const c = cookies().get(COOKIE)?.value;
+
+  const store = await cookies();
+  const c = store.get(COOKIE)?.value;
   return c === pass;
 }
 
-export function setAdminCookie() {
+export async function setAdminCookie() {
   const pass = process.env.ADMIN_PASSWORD;
   if (!pass) throw new Error("ADMIN_PASSWORD no configurada");
-  cookies().set(COOKIE, pass, {
+
+  const store = await cookies();
+  store.set(COOKIE, pass, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -21,6 +29,7 @@ export function setAdminCookie() {
   });
 }
 
-export function clearAdminCookie() {
-  cookies().set(COOKIE, "", { path: "/", maxAge: 0 });
+export async function clearAdminCookie() {
+  const store = await cookies();
+  store.set(COOKIE, "", { path: "/", maxAge: 0 });
 }

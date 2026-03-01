@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isAdminRequest } from "@/lib/auth";
 
 export async function GET() {
-  if (!isAdminRequest()) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!(await isAdminRequest())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   try {
     const sql = db();
@@ -38,7 +38,7 @@ export async function GET() {
 const PatchSchema = z.object({ id: z.number(), contacted: z.boolean() });
 
 export async function PATCH(req: Request) {
-  if (!isAdminRequest()) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  if (!(await isAdminRequest())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const body = await req.json().catch(() => null);
   const parsed = PatchSchema.safeParse(body);

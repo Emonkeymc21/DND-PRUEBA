@@ -5,9 +5,10 @@ import AdminClient from "@/components/admin/admin-client";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin" };
 
-export default function AdminPage() {
-  const ok = isAdminRequest();
+export default async function AdminPage() {
+  const ok = await isAdminRequest();
   if (!ok) redirect("/admin/login");
+
   return (
     <div className="space-y-6">
       <h1 className="text-4xl font-extrabold">Admin</h1>

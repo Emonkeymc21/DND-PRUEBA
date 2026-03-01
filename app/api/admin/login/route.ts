@@ -14,6 +14,6 @@ export async function POST(req: Request) {
 
   if (parsed.data.password !== pass) return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 });
 
-  setAdminCookie();
+  await setAdminCookie();
   return NextResponse.json({ ok: true });
 }
