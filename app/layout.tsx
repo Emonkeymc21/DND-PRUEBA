@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     type: "website"
   },
   twitter: { card: "summary_large_image", title: "Grimorio D&D", description: SITE.description, images: [SITE.ogImage] },
-  robots: { index: True, follow: True }
+  robots: { index: true, follow: true }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
