@@ -40,9 +40,19 @@ export function Button({
   return <button className={cls} {...rest}>{children}</button>;
 }
 
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+export function Card({
+  children,
+  className,
+  ...props
+}: React.PropsWithChildren<React.HTMLAttributes<HTMLDivElement>>) {
   return (
-    <div className={cn("rounded-xl border border-border/70 bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border/70 bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur",
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   );
