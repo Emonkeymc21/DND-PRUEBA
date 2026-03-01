@@ -1,16 +1,37 @@
-export type VideoCategory = "Reglas" | "Crear PJ" | "Ser DM" | "Combate";
+export type VideoCategory =
+  | "Reglas"
+  | "Crear PJ"
+  | "Ser DM"
+  | "Combate"
+  | "Inspiración";
 
 export type CuratedVideo = {
   title: string;
   youtubeId: string;
   category: VideoCategory;
+  notes?: string;
 };
 
 export const VIDEOS: CuratedVideo[] = [
-  { title: "¿Qué es D&D? (intro)", youtubeId: "aQy7V0f6mYk", category: "Reglas" },
-  { title: "Reglas básicas (explicación)", youtubeId: "lZVfJkHnWZk", category: "Reglas" },
-  { title: "Cómo crear personaje rápido", youtubeId: "7S8m8fXGvJY", category: "Crear PJ" },
-  { title: "Primer combate explicado", youtubeId: "hY0bC4f8s1c", category: "Combate" },
+  {
+    title: "Partida / ejemplo (referencia 1)",
+    youtubeId: "fUdwmhtmk1g",
+    category: "Inspiración",
+    notes: "Útil para ver ritmo, escenas y cómo se resuelven decisiones."
+  },
+  {
+    title: "Reglas / explicación (referencia 2)",
+    youtubeId: "pFuEgCNBM7w",
+    category: "Reglas",
+    notes: "Para sacar ideas de cómo explicar checks, iniciativa y acciones."
+  },
+  {
+    title: "Creador / armado de PJ (referencia 3)",
+    youtubeId: "na7emqvAsis",
+    category: "Crear PJ",
+    notes: "Para tomar ejemplos de atributos, trasfondo y equipo inicial."
+  }
 ];
 
-export const PLAYLIST_URL = "https://www.youtube.com/playlist?list=PLyGJ9mZ8c2F8PZQ";
+// Si querés curar una playlist completa, pegala acá:
+export const PLAYLIST_URL = "";

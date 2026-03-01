@@ -44,8 +44,6 @@ function speak(text: string, rate: number, voiceURI?: string) {
   window.speechSynthesis.speak(u);
 }
 
-type PendingCheck = { label: string; dc: number; mod: number } | null;
-
 export default function SimulatorClient() {
   const [sceneId, setSceneId] = React.useState("start");
   const [log, setLog] = React.useState<string[]>([]);
@@ -55,9 +53,6 @@ export default function SimulatorClient() {
   const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [hp, setHp] = React.useState(12);
   const [enemyHp, setEnemyHp] = React.useState(16);
-  const [pendingCheck, setPendingCheck] = React.useState<PendingCheck>(null);
-
-  const lastResolved = React.useRef<string | null>(null);
 
   const scene = scenes[sceneId];
 
@@ -88,45 +83,42 @@ export default function SimulatorClient() {
     if (next === "start") {
       setLog([]);
       resetCombat();
-      setPendingCheck(null);
-      lastResolved.current = null;
     }
     if (s?.title) setLog((l) => [...l, `➡️ ${s.title}`]);
   }
 
-  function resolveCheckNow(p: PendingCheck) {
-    if (!p) return;
-    const roll = rollD20();
-    const total = roll + p.mod;
-    const ok = total >= p.dc;
+  function resolveCheck(nextId: string, dc: number, label: string) {
+  const roll = rollD20();
+  const mod = 2; // demo: modificador fijo
+  const total = roll + mod;
+  const ok = total >= dc;
 
-    setLog((l) => [
-      ...l,
-      `🎲 ${p.label}: tiraste ${roll} + ${p.mod} = ${total} vs DC ${p.dc} → ${ok ? "Éxito" : "Fallo"}`
-    ]);
+  // Mostramos la escena de tirada (para que se entienda qué está pasando)
+  setSceneId(nextId);
 
-    const r = scene.resolve;
-    if (!r) return;
-    go(ok ? r.success.next : r.fail.next);
-    setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
+  setLog((l) => [
+    ...l,
+    `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`
+  ]);
 
-    setPendingCheck(null);
+  const target = scenes[nextId];
+  const r = target?.resolve;
+  if (!r) {
+    // fallback seguro: si no hay resolve, seguimos al next “normal”
+    return;
   }
 
-  // Auto-resolver escenas con "resolve" (para que la historia siempre avance)
-  React.useEffect(() => {
-    if (!scene?.resolve) return;
-    if (!pendingCheck) return; // necesitamos datos de DC/label
-    if (lastResolved.current === sceneId) return; // evitar reroll infinito
-    lastResolved.current = sceneId;
-
-    // micro delay para que se vea el texto de la escena de tirada
-    const t = window.setTimeout(() => resolveCheckNow(pendingCheck), 350);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneId]);
+  // Pequeño delay para que el usuario vea la escena de tirada
+  window.setTimeout(() => {
+    go(ok ? r.success.next : r.fail.next);
+    setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
+  }, 450);
+}
 
   function doCombat(playerAttackMod: number, advantage?: boolean) {
+    // Simplificado:
+    // - vos atacás: d20 + mod vs AC 12; si pega: 1d8+3
+    // - enemigo ataca: d20 + 3 vs tu AC 12; si pega: 1d6+1
     const playerRollA = rollD20();
     const playerRollB = rollD20();
     const playerRoll = advantage ? Math.max(playerRollA, playerRollB) : playerRollA;
@@ -171,12 +163,7 @@ export default function SimulatorClient() {
   }
 
   function onOption(opt: SceneOption) {
-    if ("kind" in opt && opt.kind === "check") {
-      // Paso 1: ir a la escena de tirada (opt.next) y guardar la DC/label para resolver ahí.
-      setPendingCheck({ label: `${opt.skill} (${opt.ability})`, dc: opt.dc, mod: 2 });
-      go(opt.next);
-      return;
-    }
+    if ("kind" in opt && opt.kind === "check") return resolveCheck(opt.next, opt.dc, `${opt.skill} (${opt.ability})`);
     if ("kind" in opt && opt.kind === "combat") return doCombat(opt.playerAttackMod, opt.advantage);
     if ("kind" in opt && opt.kind === "link") {
       window.location.href = opt.href;
@@ -185,21 +172,13 @@ export default function SimulatorClient() {
     go(opt.next);
   }
 
-  const showCombatBars =
-    (scene.options ?? []).some(o => ("kind" in o && o.kind === "combat")) ||
-    sceneId.toLowerCase().includes("ambush");
-
-  const showResolveHint = !!scene.resolve;
-
   return (
     <div className="space-y-4">
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold text-primary">{scene.title}</h2>
-            <p className="text-sm text-text/80">
-              Tutorial interactivo en español. La historia avanza con decisiones + tiradas + consecuencias.
-            </p>
+            <p className="text-sm text-text/80">Demo interactiva (reglas + plantillas). Narración gratis con SpeechSynthesis.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -211,15 +190,15 @@ export default function SimulatorClient() {
               Velocidad
               <input
                 type="range"
-                min={0.85}
-                max={1.25}
+                min={0.8}
+                max={1.3}
                 step={0.05}
                 value={rate}
                 onChange={(e) => setRate(Number(e.target.value))}
               />
             </label>
             <select
-              className="rounded-md border border-border/60 bg-bg px-2 py-2 text-sm"
+              className="rounded-md border border-border/60 bg-bg px-2 py-1 text-sm"
               value={voiceURI ?? ""}
               onChange={(e) => setVoiceURI(e.target.value || undefined)}
               aria-label="Voz"
@@ -245,7 +224,7 @@ export default function SimulatorClient() {
             🔊 Escuchar narración
           </Button>
           <Button
-            onClick={() => { setLog([]); setSceneId("start"); resetCombat(); setPendingCheck(null); lastResolved.current = null; }}
+            onClick={() => { setLog([]); setSceneId("start"); resetCombat(); }}
             type="button"
             variant="ghost"
           >
@@ -253,13 +232,7 @@ export default function SimulatorClient() {
           </Button>
         </div>
 
-        {showResolveHint && (
-          <div className="rounded-xl border border-border/60 bg-black/20 p-3 text-sm text-text/75">
-            <b className="text-primary">Tirada en curso:</b> el sistema está resolviendo la escena y te lleva a la consecuencia automáticamente.
-          </div>
-        )}
-
-        {showCombatBars && (
+        {(sceneId === "combat" || sceneId.startsWith("ambush")) && (
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-border/60 bg-black/25 p-3">
               <div className="text-sm text-text/80">Tu HP</div>
