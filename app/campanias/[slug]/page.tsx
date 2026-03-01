@@ -1,29 +1,58 @@
 import { notFound } from "next/navigation";
 import { Card, Button } from "@/components/ui";
 import RegistrationForm from "@/components/campaigns/registration-form";
-import { db } from "@/lib/db";
+import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inscripción" };
 
-async function getCampaign(slug: string) {
+type Campaign = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  is_open: boolean;
+};
+
+function normalizeCampaign(row: any): Campaign | null {
+  if (!row) return null;
+  const c: Campaign = {
+    id: Number(row?.id),
+    slug: String(row?.slug ?? ""),
+    title: String(row?.title ?? ""),
+    description: String(row?.description ?? ""),
+    is_open: Boolean(row?.is_open),
+  };
+  if (!c.slug || !c.title) return null;
+  return c;
+}
+
+function supabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Faltan variables de Supabase (URL/ANON_KEY).");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function getCampaignBySlug(slug: string): Promise<Campaign | null> {
   try {
-    const sql = db();
-    const rows = await sql`
-      select id, slug, title, description, is_open
-      from campaigns
-      where slug = ${slug}
-      limit 1
-    `;
-    return rows[0] as { id: number; slug: string; title: string; description: string; is_open: boolean } | undefined;
+    const sb = supabase();
+
+    let q = await sb.from("campaigns").select("id,slug,title,description,is_open").eq("slug", slug).limit(1);
+    if (!q.error) return normalizeCampaign(q.data?.[0]);
+
+    const q2 = await sb.from("campanias").select("id,slug,title,description,is_open").eq("slug", slug).limit(1);
+    if (!q2.error) return normalizeCampaign(q2.data?.[0]);
+
+    return null;
   } catch {
-    return undefined;
+    return null;
   }
 }
 
 export default async function CampaignSignupPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const campaign = await getCampaign(slug);
+  const campaign = await getCampaignBySlug(slug);
   if (!campaign) return notFound();
 
   return (
