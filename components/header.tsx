@@ -43,7 +43,7 @@ export function Header() {
 
         <nav className="hidden gap-5 text-sm text-text/90 md:flex">
           {links.map((l) => (
-            <Link key={l.href} className="hover:text-primary" href={l.href}>
+            <Link key={l.href} className="hover:text-primary" href={l.href as any}>
               {l.label}
             </Link>
           ))}
@@ -68,7 +68,7 @@ export function Header() {
                 {links.map((l) => (
                   <Link
                     key={l.href}
-                    href={l.href}
+                    href={l.href as any}
                     className="rounded-md border border-border/60 bg-card/40 px-4 py-3 text-sm font-semibold text-text/90 hover:border-primary/70 hover:text-primary"
                     onClick={() => setOpen(false)}
                   >
