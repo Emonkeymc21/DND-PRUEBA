@@ -1,12 +1,21 @@
 import { Card, Button, Badge } from "@/components/ui";
 import Link from "next/link";
+import { db } from "@/lib/db";
 
 export const metadata = { title: "Campañas" };
 
 async function getCampaigns() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/campaigns`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return res.json() as Promise<Array<{ id: number; slug: string; title: string; description: string; is_open: boolean }>>;
+  try {
+    const sql = db();
+    const rows = await sql`
+      select id, slug, title, description, is_open
+      from campaigns
+      order by created_at desc
+    `;
+    return rows as Array<{ id: number; slug: string; title: string; description: string; is_open: boolean }>;
+  } catch {
+    return [];
+  }
 }
 
 export default async function CampaignsPage() {
@@ -25,7 +34,11 @@ export default async function CampaignsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {campaigns.length === 0 ? (
           <Card>
-            <div className="text-text/80">No hay campañas cargadas aún. Configurá DB y corré <code className="rounded bg-black/40 px-1 py-0.5">npm run db:seed</code>.</div>
+            <div className="text-text/80">
+              No hay campañas cargadas aún (o falta DB). Si ya configuraste <b>DATABASE_URL</b>, corré:
+              {" "}
+              <code className="rounded bg-black/40 px-1 py-0.5">npm run db:seed</code>.
+            </div>
           </Card>
         ) : (
           campaigns.map((c) => (

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
 export function Header() {
-  const { theme, setTheme } = useTheme();
+  const { theme, toggle } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-bg/70 backdrop-blur">
@@ -24,8 +24,9 @@ export function Header() {
 
         <button
           className={cn("rounded-md border border-border/60 px-3 py-1 text-sm hover:border-primary/70 hover:text-primary")}
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={toggle}
           aria-label="Cambiar tema"
+          type="button"
         >
           {theme === "dark" ? "☀️" : "🌙"}
         </button>

@@ -1,13 +1,23 @@
 import { notFound } from "next/navigation";
 import { Card, Button } from "@/components/ui";
 import RegistrationForm from "@/components/campaigns/registration-form";
+import { db } from "@/lib/db";
 
 export const metadata = { title: "Inscripción" };
 
 async function getCampaign(slug: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/campaigns/${slug}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  return res.json() as Promise<{ id: number; slug: string; title: string; description: string; is_open: boolean }>;
+  try {
+    const sql = db();
+    const rows = await sql`
+      select id, slug, title, description, is_open
+      from campaigns
+      where slug = ${slug}
+      limit 1
+    `;
+    return rows[0] as { id: number; slug: string; title: string; description: string; is_open: boolean } | undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export default async function CampaignSignupPage({ params }: { params: Promise<{ slug: string }> }) {
