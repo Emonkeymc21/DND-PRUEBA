@@ -36,69 +36,51 @@ const GOOGLE_FORM_ACTION =
 
 const EXPERIENCES = [
   "Curioso/a: Nunca jugué, pero vi Stranger Things (o Big Bang Theory) y siempre quise probar.",
-  "Principiante: Jugué 1–2 veces o tengo la idea general.",
-  "Intermedio: Ya jugué campañas, entiendo reglas básicas.",
-  "Veterano/a: DM o jugador/a frecuente, me sé el PHB de memoria 😄",
+  "Espectador: Veo partidas en YouTube/Twitch (Critical Role, etc.) pero nunca jugué.",
+  "Principiante: Jugué alguna vez o hace mucho tiempo.",
+  "Veterano: Conozco las reglas y tengo mis propios dados.",
 ];
 
 const RULES = [
-  {
-    label: "Dungeons & Dragons 5e",
-    value:
-      "Dungeons & Dragons 5e: Fantasía clásica, muchas reglas, opciones y combate táctico. (El más famoso)",
-  },
-  {
-    label: "Reglas simplificadas",
-    value:
-      "Reglas simplificadas: Menos números, más narrativa, ideal para iniciarse.",
-  },
+  { label: "Dungeons & Dragons 5e", value: "Dungeons & Dragons 5e: Fantasía clásica, muchas reglas, opciones y combate táctico. (El más famoso)" },
+  { label: "Sistema Ligero (Ej", value: "Sistema Ligero (Ej: Dungeons World): Pocas reglas, se aprende en 10 minutos, enfocado 100% en la historia y narración." },
+  { label: "Me da igual", value: "Me da igual: Me adapto a lo que elija la mayoría." },
 ];
 
 const THEMES = [
-  {
-    label: "Fantasía Heroica Clásica",
-    value:
-      "Fantasía Heroica Clásica: Dragones, espadas y magia (Estilo El Señor de los Anillos o D&D Clásico).",
-  },
-  {
-    label: "Mundo Mágico / Académico",
-    value:
-      "Mundo Mágico / Académico: Varitas, escuelas de magia, misterios juveniles (Estilo Harry Potter).",
-  },
-  {
-    label: "Estilo Anime / Shonen",
-    value:
-      "Estilo Anime / Shonen: Poderes, clanes, maldiciones y técnica (Estilo Jujutsu Kaisen).",
-  },
+  "Fantasía Heroica Clásica: Dragones, espadas y magia (Estilo El Señor de los Anillos o D&D Clásico).",
+  "Mundo Mágico / Académico: Varitas, escuelas de magia, misterios juveniles (Estilo Harry Potter).",
+  "Estilo Anime / Shonen: Exorcistas, cazadores de demonios, técnicas especiales y mucha acción (Estilo Jujutsu Kaisen o Demon Slayer).",
+  "Supervivencia Distópica: Un mundo cruel, competencias, rebelión (Estilo Los Juegos del Hambre).",
+  "Cyberpunk / Ciencia Ficción: Futuro distópico, hackers, naves espaciales (Estilo Blade Runner o Star Wars).",
 ];
 
 const PLAY_MODES = [
-  {
-    label: "Presencial: Tengo disponibilidad para juntarme en una casa.",
-    value: "Presencial: Tengo disponibilidad para juntarme en una casa.",
-  },
-  {
-    label: "Online: Puedo jugar por Discord/Roll20/Foundry.",
-    value: "Online: Puedo jugar por Discord/Roll20/Foundry.",
-  },
+  "Presencial: Tengo disponibilidad para juntarme en una casa.",
+  "Virtual: Tengo PC/Celular, micrófono decente y conexión estable (Discord/Roll20).",
+  "Híbrido/Indistinto: Me adapto a cualquiera de las dos.",
 ];
 
 const FREQUENCY = [
-  { label: "Semanal: Una vez por semana", value: "Semanal: Una vez por semana" },
-  {
-    label: "Quincenal: Cada dos semanas",
-    value: "Quincenal: Cada dos semanas",
-  },
-  {
-    label: "Mensual: Una vez al mes",
-    value: "Mensual: Una vez al mes",
-  },
+  "Semanal: Una vez por semana (compromiso alto).",
+  "Quincenal: Cada dos semanas",
+  "Mensual: Una sesión larga una vez al mes",
+  "One-Shots: Solo partidas sueltas de vez en cuando, sin continuidad.",
 ];
 
 // OJO: estos values deben coincidir con los que existen en el Google Form real.
-const AVAIL_OPTIONS_FRI = ["Mañana 10 hs", "Tarde 18 hs", "Noche 20 hs"];
-const AVAIL_OPTIONS_SAT = ["Mañana 10 hs", "Tarde 18 hs", "Noche 20 hs"];
-const AVAIL_OPTIONS_SUN = ["Mañana 10 hs", "Tarde 18 hs", "Noche 20 hs"];
+const AVAIL_OPTIONS_FRI = [
+  "Tarde 18 hs",
+  "Noche 20 hs",
+];
+const AVAIL_OPTIONS_SAT = [
+  "Tarde 18 hs",
+  "Noche 20 hs",
+];
+const AVAIL_OPTIONS_SUN = [
+  "Tarde 18 hs",
+  "Noche 20 hs",
+];
 
 function RpgSignupForm({ onDone, compact }: Props) {
   const [step, setStep] = React.useState(0);
