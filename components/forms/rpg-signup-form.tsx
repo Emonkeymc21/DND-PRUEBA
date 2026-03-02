@@ -227,7 +227,6 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             defaultValue={3}
             className="w-full"
           />
-        </div>
       </div>
 
       <div className={step === 2 ? "space-y-3" : "hidden space-y-3"}>
