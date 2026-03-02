@@ -21,6 +21,68 @@ type Character = {
 
 const AbilityKeys = ["STR","DEX","CON","INT","WIS","CHA"] as const;
 
+
+const CLASS_ES: Record<string,string> = {
+  barbarian: "Bárbaro",
+  bard: "Bardo",
+  cleric: "Clérigo",
+  druid: "Druida",
+  fighter: "Guerrero",
+  monk: "Monje",
+  paladin: "Paladín",
+  ranger: "Explorador",
+  rogue: "Pícaro",
+  sorcerer: "Hechicero",
+  warlock: "Brujo",
+  wizard: "Mago",
+};
+
+const BACKGROUND_ES: Record<string,string> = {
+  acolyte: "Acólito",
+  charlatan: "Charlatán",
+  criminal: "Criminal",
+  entertainer: "Artista/Entretenedor",
+  folk_hero: "Héroe del pueblo",
+  guild_artisan: "Artesano de gremio",
+  hermit: "Ermitaño",
+  noble: "Noble",
+  outlander: "Forastero",
+  sage: "Sabio",
+  sailor: "Marinero",
+  soldier: "Soldado",
+  urchin: "Huérfano de la calle",
+};
+
+const SKILL_ES: Record<string,string> = {
+  "Acrobatics": "Acrobacias",
+  "Animal Handling": "Trato con animales",
+  "Arcana": "Arcana",
+  "Athletics": "Atletismo",
+  "Deception": "Engaño",
+  "History": "Historia",
+  "Insight": "Perspicacia",
+  "Intimidation": "Intimidación",
+  "Investigation": "Investigación",
+  "Medicine": "Medicina",
+  "Nature": "Naturaleza",
+  "Perception": "Percepción",
+  "Performance": "Interpretación",
+  "Persuasion": "Persuasión",
+  "Religion": "Religión",
+  "Sleight of Hand": "Juego de manos",
+  "Stealth": "Sigilo",
+  "Survival": "Supervivencia",
+};
+
+function displayChoice(c?: Choice, kind?: "class"|"background"|"skill") {
+  if (!c) return "";
+  if (kind === "class") return CLASS_ES[c.index] ?? c.name;
+  if (kind === "background") return BACKGROUND_ES[c.index] ?? c.name;
+  if (kind === "skill") return SKILL_ES[c.name] ?? c.name;
+  return c.name;
+}
+
+
 function roll4d6DropLowest() {
   const rolls = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1).sort((a,b)=>a-b);
   return rolls.slice(1).reduce((a,b)=>a+b,0);
@@ -158,7 +220,7 @@ export default function CreatorClient() {
             {classes.map(c => (
               <button key={c.index} className={`rounded-xl border p-3 text-left transition ${char.class?.index===c.index ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                 onClick={() => update("class", c)} type="button">
-                <div className="font-semibold">{c.name}</div>
+                <div className="font-semibold">{displayChoice(c,"class")}</div>
                 <div className="text-xs text-text/70">{c.index}</div>
               </button>
             ))}
@@ -170,7 +232,7 @@ export default function CreatorClient() {
             {backgrounds.map(b => (
               <button key={b.index} className={`rounded-xl border p-3 text-left transition ${char.background?.index===b.index ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                 onClick={() => update("background", b)} type="button">
-                <div className="font-semibold">{b.name}</div>
+                <div className="font-semibold">{displayChoice(b,"background")}</div>
                 <div className="text-xs text-text/70">{b.index}</div>
               </button>
             ))}
@@ -215,7 +277,7 @@ export default function CreatorClient() {
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                     onClick={() => toggleSkill(s.name)}
                   >
-                    {s.name}
+                    {displayChoice(s,"skill")}
                   </button>
                 );
               })}
@@ -234,7 +296,7 @@ export default function CreatorClient() {
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                     onClick={() => toggleSpell(s.name)}
                   >
-                    {s.name}
+                    {displayChoice(s,"skill")}
                   </button>
                 );
               })}

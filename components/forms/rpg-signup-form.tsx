@@ -130,6 +130,15 @@ export function RpgSignupForm({ onDone, compact }: Props) {
       method="POST"
       target="hidden_iframe"
       className="space-y-4"
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+          // Evita submits accidentales al navegar pasos.
+          if (step < 3 && tag !== "textarea") {
+            e.preventDefault();
+          }
+        }
+      }}
     >
       <div className="flex items-center justify-center gap-2" aria-hidden>
         {dots.map((d) => (
@@ -140,8 +149,7 @@ export function RpgSignupForm({ onDone, compact }: Props) {
         ))}
       </div>
 
-      {step === 0 ? (
-        <div className="space-y-3">
+      <div className={step === 0 ? "space-y-3" : "hidden space-y-3"}>
           <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">I. IDENTIDAD</h3>
 
           <label className="block text-sm font-semibold text-primary">Correo electrónico</label>
@@ -180,10 +188,9 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             ))}
           </select>
         </div>
-      ) : null}
+      </div>
 
-      {step === 1 ? (
-        <div className="space-y-3">
+      <div className={step === 1 ? "space-y-3" : "hidden space-y-3"}>
           <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">II. PREFERENCIAS</h3>
 
           <label className="block text-sm font-semibold text-primary">¿Qué tipo de reglas preferís?</label>
@@ -222,10 +229,9 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             className="w-full"
           />
         </div>
-      ) : null}
+      </div>
 
-      {step === 2 ? (
-        <div className="space-y-3">
+      <div className={step === 2 ? "space-y-3" : "hidden space-y-3"}>
           <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">III. LOGÍSTICA</h3>
 
           <label className="block text-sm font-semibold text-primary">¿Cómo preferís jugar?</label>
@@ -285,10 +291,9 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             </div>
           </div>
         </div>
-      ) : null}
+      </div>
 
-      {step === 3 ? (
-        <div className="space-y-3">
+      <div className={step === 3 ? "space-y-3" : "hidden space-y-3"}>
           <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">IV. EL PACTO</h3>
 
           <label className="block text-sm font-semibold text-primary">Líneas y velos (temas a evitar)</label>
@@ -306,10 +311,11 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             placeholder="Opcional"
           />
         </div>
-      ) : null}
+      </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
+          key="back"
           type="button"
           variant="ghost"
           className="w-full sm:w-auto"
@@ -320,11 +326,11 @@ export function RpgSignupForm({ onDone, compact }: Props) {
         </Button>
 
         {step < 3 ? (
-          <Button type="button" className="w-full sm:flex-1" onClick={() => setStep((s) => Math.min(3, s + 1))} disabled={sending}>
+          <Button key="next" type="button" className="w-full sm:flex-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStep((s) => Math.min(3, s + 1)); }} disabled={sending}>
             Siguiente
           </Button>
         ) : (
-          <Button type="submit" className="w-full sm:flex-1" disabled={sending}>
+          <Button key="submit" type="submit" className="w-full sm:flex-1" disabled={sending}>
             {sending ? "Enviando…" : "Enviar"}
           </Button>
         )}

@@ -112,30 +112,33 @@ function rollD20() {
   return Math.floor(Math.random() * 20) + 1;
 }
 
-function speak(text: string, rate: number, voiceURI?: string) {
+function pickEpicSpanishVoice(voices: SpeechSynthesisVoice[]) {
+  // Preferimos una voz española/latam "natural" si existe.
+  const es = voices.filter(v => (v.lang || "").toLowerCase().startsWith("es"));
+  const preferred = es.find(v => /google|natural|premium/i.test(v.name)) || es.find(v => /microsoft/i.test(v.name)) || es[0];
+  return preferred;
+}
+
+function speak(text: string, rate: number, voice?: SpeechSynthesisVoice) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = "es-AR";
+  u.lang = (voice?.lang || "es-ES");
   u.rate = rate;
+  if (voice) u.voice = voice;
 
-  const voices = window.speechSynthesis.getVoices();
-  if (voiceURI) {
-    const v = voices.find(v => v.voiceURI === voiceURI);
-    if (v) u.voice = v;
-  }
   window.speechSynthesis.speak(u);
 }
 
 export default function SimulatorClient() {
+
   const [sceneId, setSceneId] = React.useState("start");
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
   const [rate, setRate] = React.useState(1.0);
-  const [voiceURI, setVoiceURI] = React.useState<string | undefined>(undefined);
-  const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
+  const [voice, setVoice] = React.useState<SpeechSynthesisVoice | undefined>(undefined);
   const [hp, setHp] = React.useState(12);
   const [enemyHp, setEnemyHp] = React.useState(16);
 
@@ -145,7 +148,10 @@ export default function SimulatorClient() {
     if (typeof window === "undefined") return;
     if (!("speechSynthesis" in window)) return;
 
-    const load = () => setVoices(window.speechSynthesis.getVoices());
+    const load = () => {
+      const vs = window.speechSynthesis.getVoices();
+      setVoice(pickEpicSpanishVoice(vs));
+    };
     load();
     window.speechSynthesis.onvoiceschanged = load;
     return () => { window.speechSynthesis.onvoiceschanged = null; };
@@ -153,9 +159,9 @@ export default function SimulatorClient() {
 
   React.useEffect(() => {
     if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI);
+    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voice);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneId, autoNarrate, rate, voiceURI]);
+  }, [sceneId, autoNarrate, rate, voice]);
 
   function resetCombat() {
     setHp(12);
@@ -296,17 +302,6 @@ export default function SimulatorClient() {
                 onChange={(e) => setRate(Number(e.target.value))}
               />
             </label>
-            <select
-              className="rounded-md border border-border/60 bg-bg px-2 py-1 text-sm"
-              value={voiceURI ?? ""}
-              onChange={(e) => setVoiceURI(e.target.value || undefined)}
-              aria-label="Voz"
-            >
-              <option value="">Voz (default)</option>
-              {voices.map(v => (
-                <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -316,7 +311,7 @@ export default function SimulatorClient() {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI)}
+            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voice)}
             type="button"
             variant="ghost"
           >
