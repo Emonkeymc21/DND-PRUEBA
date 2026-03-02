@@ -4,16 +4,44 @@ import * as React from "react";
 import scenesRaw from "@/data/simulator/scenes.es.json";
 import { Button, Card } from "@/components/ui";
 
+type RawSceneOption = {
+  label: string;
+  kind?: "check" | "combat" | "link";
+  // some older JSONs used href instead of next
+  next?: string;
+  href?: string;
+  // check
+  dc?: number;
+  ability?: string;
+  skill?: string;
+  // combat
+  playerAttackMod?: number;
+  advantage?: boolean;
+};
+
+type RawScene = {
+  title: string;
+  text: string;
+  narrate?: boolean;
+  summary?: string; // allowed in JSON
+  options?: RawSceneOption[];
+  resolve?: {
+    success: { next: string; text: string };
+    fail: { next: string; text: string };
+  };
+};
+
 type SceneOption =
   | { label: string; next: string }
   | { label: string; next: string; kind: "check"; dc: number; ability: string; skill: string }
   | { label: string; next: string; kind: "combat"; playerAttackMod: number; advantage?: boolean }
-  | { label: string; next: string; kind: "link"; href: string };
+  | { label: string; kind: "link"; href: string; next?: string };
 
 type Scene = {
   title: string;
   text: string;
   narrate?: boolean;
+  summary?: string;
   options?: SceneOption[];
   resolve?: {
     success: { next: string; text: string };
@@ -21,13 +49,70 @@ type Scene = {
   };
 };
 
-const scenes = scenesRaw as Record<string, Scene>;
+function normalizeScenes(raw: unknown): Record<string, Scene> {
+  const obj = (raw ?? {}) as Record<string, RawScene>;
+  const out: Record<string, Scene> = {};
+
+  for (const [id, scene] of Object.entries(obj)) {
+    const options: SceneOption[] | undefined = scene.options?.map((o) => {
+      const kind = o.kind;
+      const next = o.next ?? (o.href && !/^https?:\/\//.test(o.href) && !o.href.startsWith("/") ? o.href : undefined);
+
+      if (kind === "check") {
+        return {
+          label: o.label,
+          kind: "check",
+          next: next ?? "fin",
+          dc: Number(o.dc ?? 12),
+          ability: String(o.ability ?? "DEX"),
+          skill: String(o.skill ?? "Engaño"),
+        };
+      }
+
+      if (kind === "combat") {
+        return {
+          label: o.label,
+          kind: "combat",
+          next: next ?? "fin",
+          playerAttackMod: Number(o.playerAttackMod ?? 4),
+          advantage: o.advantage,
+        };
+      }
+
+      if (kind === "link") {
+        // link can either be external/internal URL, or legacy scene id in href
+        return {
+          label: o.label,
+          kind: "link",
+          href: String(o.href ?? "/"),
+          next,
+        };
+      }
+
+      // default: plain next transition
+      return { label: o.label, next: next ?? "fin" };
+    });
+
+    out[id] = {
+      title: String(scene.title ?? id),
+      text: String(scene.text ?? ""),
+      narrate: scene.narrate,
+      summary: scene.summary,
+      options,
+      resolve: scene.resolve,
+    };
+  }
+
+  return out;
+}
+
+const scenes = normalizeScenes(scenesRaw);
 
 function rollD20() {
   return Math.floor(Math.random() * 20) + 1;
 }
 
-function speak(text: string, rate: number, voiceURI?: string, pitch: number = 1.0) {
+function speak(text: string, rate: number, voiceURI?: string) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
@@ -35,7 +120,6 @@ function speak(text: string, rate: number, voiceURI?: string, pitch: number = 1.
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "es-AR";
   u.rate = rate;
-  u.pitch = pitch;
 
   const voices = window.speechSynthesis.getVoices();
   if (voiceURI) {
@@ -49,15 +133,13 @@ export default function SimulatorClient() {
   const [sceneId, setSceneId] = React.useState("start");
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
-  const [rate, setRate] = React.useState(0.95);
-  const [epic, setEpic] = React.useState(true);
-  const [pitch, setPitch] = React.useState(0.75);
+  const [rate, setRate] = React.useState(1.0);
   const [voiceURI, setVoiceURI] = React.useState<string | undefined>(undefined);
   const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [hp, setHp] = React.useState(12);
   const [enemyHp, setEnemyHp] = React.useState(16);
 
-  const scene = scenes[sceneId] ?? scenes["start"];
+  const scene = scenes[sceneId];
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -71,7 +153,7 @@ export default function SimulatorClient() {
 
   React.useEffect(() => {
     if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI, epic ? pitch : 1.0);
+    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sceneId, autoNarrate, rate, voiceURI]);
 
@@ -204,10 +286,6 @@ export default function SimulatorClient() {
               Auto narrar
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={epic} onChange={(e) => setEpic(e.target.checked)} />
-              Voz épica
-            </label>
-            <label className="flex items-center gap-2 text-sm">
               Velocidad
               <input
                 type="range"
@@ -238,7 +316,7 @@ export default function SimulatorClient() {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI, epic ? pitch : 1.0)}
+            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI)}
             type="button"
             variant="ghost"
           >
