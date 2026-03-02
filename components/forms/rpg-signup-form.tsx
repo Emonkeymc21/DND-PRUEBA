@@ -13,9 +13,6 @@ type Props = {
   compact?: boolean;
 };
 
-const ACTION =
-  "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse";
-
 // Estos names vienen del index.html original (Google Forms)
 const F = {
   email: "emailAddress",
@@ -87,39 +84,36 @@ export function RpgSignupForm({ onDone, compact }: Props) {
   if (sending) return;
 
   setSending(true);
+
   try {
-    const form = e.currentTarget;
-    const fd = new FormData(form);
+    const formEl = e.currentTarget;
+    const fd = new FormData(formEl);
 
-    const payload = {
-      email: fd.get(F.email),
-      name: fd.get(F.name),
-      instagram: fd.get(F.instagram),
-      experience: fd.get(F.experience),
-      rules: fd.get(F.rules),
-      theme: fd.get(F.theme),
-      style: fd.get(F.style),
-      playMode: fd.get(F.playMode),
-      freq: fd.get(F.freq),
-      // availability fields are separate in this form
-      availability: [
-        fd.get(F.availability[0]),
-        fd.get(F.availability[1]),
-        fd.get(F.availability[2]),
-      ].filter(Boolean),
-      avoid: fd.get(F.avoid),
-      notes: fd.get(F.notes),
-    };
+    // Build { [name]: string | string[] } and preserve repeated checkbox names as arrays.
+    const payload: Record<string, string | string[]> = {};
+    for (const [key, value] of fd.entries()) {
+      if (!key) continue;
+      const v = String(value);
+      if (payload[key] === undefined) {
+        payload[key] = v;
+      } else if (Array.isArray(payload[key])) {
+        (payload[key] as string[]).push(v);
+      } else {
+        payload[key] = [payload[key] as string, v];
+      }
+    }
 
-    const resp = await fetch("/api/rpg-signup", {
+    const res = await fetch("/api/rpg-signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    if (!resp.ok) {
-      const msg = await resp.text().catch(() => "");
-      throw new Error(`No se pudo enviar el formulario (status ${resp.status}). ${msg}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok) {
+      throw new Error(
+        `Google Forms rechazo el envío (status ${data?.status ?? res.status}).`
+      );
     }
 
     setSent(true);

@@ -1,91 +1,111 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+/**
+ * Submits the RPG signup form to Google Forms from the server (Netlify/Node),
+ * avoiding browser CORS/iframe issues and handling multi-select fields correctly.
+ *
+ * IMPORTANT:
+ * - Google Forms expects checkbox values as repeated fields with the same entry.* name.
+ * - We fetch the viewform once to extract hidden tokens (fbzx / fvv) for best compatibility.
+ */
 
-const FORM_ID = "1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A";
-const VIEW_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform`;
-const POST_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+const FORM_ID =
+  "1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A";
 
-function pickFbZx(html: string): string | null {
-  const m = html.match(/name="fbzx"\s+value="([^"]+)"/);
-  return m?.[1] ?? null;
+const VIEWFORM_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform`;
+const FORM_RESPONSE_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+
+function extractHidden(html: string, name: string): string | null {
+  // matches: <input type="hidden" name="fbzx" value="...">
+  const re = new RegExp(
+    `<input[^>]+name=["']${name}["'][^>]*value=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const m = html.match(re);
+  return m ? m[1] : null;
+}
+
+function appendMaybe(params: URLSearchParams, key: string, value: unknown) {
+  if (value === undefined || value === null) return;
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      if (v === undefined || v === null) continue;
+      const s = String(v).trim();
+      if (!s) continue;
+      params.append(key, s);
+    }
+    return;
+  }
+  const s = String(value).trim();
+  if (!s) return;
+  params.append(key, s);
 }
 
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
+    const body = await req.json().catch(() => ({} as any));
 
-    // 1) Fetch the form HTML to extract fbzx token (Google Forms often needs it)
-    const viewResp = await fetch(VIEW_URL, {
+    // 1) Fetch viewform to extract tokens (helps for multi-page / stricter forms)
+    const viewResp = await fetch(VIEWFORM_URL, {
       method: "GET",
       headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; NetlifyFunctions/1.0; +https://www.netlify.com/)",
       },
-      // avoid any caching surprises
       cache: "no-store",
     });
-    const html = await viewResp.text();
-    const fbzx = pickFbZx(html);
 
+    const html = await viewResp.text();
+
+    const fbzx = extractHidden(html, "fbzx");
+    const fvv = extractHidden(html, "fvv") ?? "1";
+
+    // 2) Build payload. Expect body to be { [fieldName]: string | string[] }
     const payload = new URLSearchParams();
 
-    // Standard hidden fields
-    payload.set("fvv", "1");
-    payload.set("pageHistory", "0");
-    if (fbzx) payload.set("fbzx", fbzx);
-    payload.set("submit", "Submit");
+    // Hidden required-ish fields
+    appendMaybe(payload, "fvv", fvv);
+    if (fbzx) appendMaybe(payload, "fbzx", fbzx);
 
-    // Map incoming fields to Google Forms entry names
-    // NOTE: keep these IDs in sync with your form.
-    if (data.email) payload.set("emailAddress", String(data.email));
-    if (data.name) payload.set("entry.592377339", String(data.name));
-    if (data.instagram) payload.set("entry.1145937670", String(data.instagram));
-    if (data.experience) payload.set("entry.1662985932", String(data.experience));
-    if (data.rules) payload.set("entry.259189639", String(data.rules));
-    if (data.theme) payload.set("entry.1977972677", String(data.theme));
-    if (data.style) payload.set("entry.430852753", String(data.style));
-    if (data.playMode) payload.set("entry.2000145625", String(data.playMode));
-    if (data.freq) payload.set("entry.432896089", String(data.freq));
-    if (data.avoid) payload.set("entry.36863628", String(data.avoid));
-    if (data.notes) payload.set("entry.28201251", String(data.notes));
+    // Some forms are multi-page; pageHistory often helps. If not needed, Google ignores it.
+    appendMaybe(payload, "pageHistory", "0,1,2,3");
 
-    // Availability: may be one value or array of values. We keep the 3 separate entry IDs used in the form.
-    const availability = data.availability;
-    if (Array.isArray(availability)) {
-      if (availability[0]) payload.set("entry.2140878283", String(availability[0]));
-      if (availability[1]) payload.set("entry.2065289993", String(availability[1]));
-      if (availability[2]) payload.set("entry.876431454", String(availability[2]));
-    } else if (typeof availability === "string" && availability) {
-      payload.set("entry.2140878283", availability);
+    // 3) Append every incoming field as urlencoded. Repeats for arrays.
+    if (body && typeof body === "object") {
+      for (const [k, v] of Object.entries(body)) {
+        // skip any client-only keys
+        if (!k) continue;
+        appendMaybe(payload, k, v as any);
+      }
     }
 
-    const postResp = await fetch(POST_URL, {
+    // Submit hint
+    appendMaybe(payload, "submit", "Submit");
+
+    // 4) POST to Google Forms
+    const resp = await fetch(FORM_RESPONSE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "*/*",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; NetlifyFunctions/1.0; +https://www.netlify.com/)",
+        // Referer sometimes helps
+        Referer: VIEWFORM_URL,
       },
       body: payload.toString(),
       redirect: "manual",
-      cache: "no-store",
     });
 
-    // Google Forms often returns 200 or 302 on success.
-    const ok = postResp.status === 200 || postResp.status === 302 || postResp.status === 0;
+    // Google Forms often responds 200/302. Treat 2xx or 3xx as success.
+    const ok = resp.status >= 200 && resp.status < 400;
 
     return NextResponse.json(
-      {
-        ok,
-        status: postResp.status,
-        fbzx: fbzx ? "present" : "missing",
-      },
-      { status: ok ? 200 : 500 }
+      { ok, status: resp.status },
+      { status: ok ? 200 : 502 }
     );
-  } catch (err) {
+  } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: String(err) },
+      { ok: false, error: String(err?.message ?? err) },
       { status: 500 }
     );
   }
