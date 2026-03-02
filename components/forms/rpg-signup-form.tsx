@@ -4,6 +4,10 @@ import * as React from "react";
 import { Button } from "@/components/ui";
 import { CAMPAIGN_EXAMPLES } from "@/data/campaigns";
 
+function fmtGenre(g: any) {
+  return Array.isArray(g) ? g.join(" / ") : String(g ?? "");
+}
+
 type Props = {
   onDone?: () => void;
   compact?: boolean;
@@ -196,8 +200,8 @@ export function RpgSignupForm({ onDone, compact }: Props) {
           <label className="block text-sm font-semibold text-primary">Campaña / estilo que te gustaría</label>
           <select name={F.style} className="w-full rounded-md border border-border/60 bg-bg px-4 py-3">
             {CAMPAIGN_EXAMPLES.map((c) => (
-              <option key={c.slug} value={`${c.title} — ${c.genre.join(" / ")}`}>
-                {c.title} — {c.genre.join(" / ")}
+              <option key={c.slug} value={`${c.title} — ${fmtGenre(c.genre)}`}>
+                {c.title} — {fmtGenre(c.genre)}
               </option>
             ))}
             <option value="Flexible / Me adapto">Flexible / Me adapto</option>
