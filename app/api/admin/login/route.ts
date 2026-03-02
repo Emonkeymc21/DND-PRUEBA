@@ -5,8 +5,9 @@ import { setAdminCookie } from "@/lib/auth";
 const Schema = z.object({ password: z.string().min(1) });
 
 export async function POST(req: Request) {
-  const pass = process.env.ADMIN_PASSWORD ?? "Monkey1021*";
-  
+  const pass = process.env.ADMIN_PASSWORD;
+  if (!pass) return NextResponse.json({ error: "ADMIN_PASSWORD no configurada" }, { status: 500 });
+
   const body = await req.json().catch(() => null);
   const parsed = Schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });

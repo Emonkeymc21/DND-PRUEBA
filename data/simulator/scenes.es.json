@@ -1,1621 +1,1041 @@
 {
-  "start": {
-    "title": "Simulador",
-    "text": "Elegí una aventura para comenzar.",
-    "narrate": true,
+  "choose_theme": {
+    "title": "Elegí tu aventura",
+    "text": "Antes de que la voz cuente tu destino… elegí el tipo de historia. Cada una tiene escenas propias, variables ocultas, tiradas y finales distintos.",
+    "narrate": false,
     "options": [
       {
-        "label": "Elegir aventura",
-        "next": "choose"
+        "label": "⚔️ Fantasía heroica (dragones y ruinas)",
+        "kind": "link",
+        "next": "fan_start"
+      },
+      {
+        "label": "🚀 Sci‑Fi / Cyberpunk (IA y neón)",
+        "kind": "link",
+        "next": "sci_start"
+      },
+      {
+        "label": "🔥 Anime / Shonen (técnicas y rival)",
+        "kind": "link",
+        "next": "ani_start"
+      },
+      {
+        "label": "🪄 Mundo mágico (academia y reliquias)",
+        "kind": "link",
+        "next": "mag_start"
+      },
+      {
+        "label": "🕯 Terror (cordura y susurros)",
+        "kind": "link",
+        "next": "hor_start"
       }
     ]
   },
-  "combat_end": {
-    "title": "Victoria",
-    "text": "El combate termina. Tomás aire… y seguís adelante.",
+  "fan_start": {
+    "title": "La Taberna del Dado Dorado",
+    "text": "Entrás a una taberna llena de humo. El tabernero baja la voz: “Alguien robó un mapa… y dejó sangre”. En tu bolsillo, una moneda vieja vibra como si reconociera el peligro.",
     "narrate": true,
     "options": [
       {
-        "label": "Continuar",
-        "next": "choose"
-      }
-    ]
-  },
-  "start_fantasy": {
-    "title": "🗡️ Fantasía: La Marca del Dragón",
-    "text": "Tu antorcha chisporrotea frente a las ruinas de Valen‑Khar. Un símbolo dracónico late en tu muñeca como si tuviera pulso.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Explorar las ruinas en silencio (Percepción DC 12)",
+        "label": "Seguir el rastro por el callejón",
         "kind": "check",
+        "next": "fan_check_perc",
         "dc": 12,
-        "ability": "SAB",
+        "ability": "WIS",
         "skill": "Percepción",
-        "next": "fan_check_ruins"
+        "effects": {
+          "honor": 1
+        }
       },
       {
-        "label": "Entrar con la espada en alto",
-        "next": "fan_gate"
-      },
-      {
-        "label": "Buscar un atajo por las cloacas antiguas (Supervivencia DC 13)",
+        "label": "Convencer al tabernero de que hable",
         "kind": "check",
+        "next": "fan_check_pers",
         "dc": 13,
-        "ability": "SAB",
-        "skill": "Supervivencia",
-        "next": "fan_check_sewers"
-      }
-    ]
-  },
-  "fan_check_ruins": {
-    "title": "Eco en la piedra",
-    "text": "Tus pasos se vuelven parte del polvo. Algo respira detrás de las columnas…",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "fan_shrine",
-        "text": "Detectás hilos de campanas: una trampa. La desarmás sin ruido."
-      },
-      "fail": {
-        "next": "fan_ambush",
-        "text": "Pisás una losa falsa. El eco despierta a los vigías."
-      }
-    }
-  },
-  "fan_gate": {
-    "title": "La Puerta Negra",
-    "text": "La puerta cede con un gemido. El aire huele a metal y a promesa rota.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Ir al santuario central",
-        "next": "fan_shrine"
-      },
-      {
-        "label": "Registrar la armería derruida",
-        "next": "fan_armory"
-      }
-    ]
-  },
-  "fan_check_sewers": {
-    "title": "Cloacas de los Antiguos",
-    "text": "Bajás por un túnel húmedo. Las ratas te miran como si supieran tu nombre.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "fan_armory",
-        "text": "Encontrás un acceso directo a la armería sin alertar a nadie."
-      },
-      "fail": {
-        "next": "fan_curse",
-        "text": "Una babosa negra te roza. Sentís una marca fría subir por la piel."
-      }
-    }
-  },
-  "fan_armory": {
-    "title": "Armería derruida",
-    "text": "Entre escudos rotos, una lanza aún brilla. También hay huellas recientes.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Tomar la lanza (te da ventaja en el próximo combate)",
-        "next": "fan_armory_take"
-      },
-      {
-        "label": "Seguir las huellas hacia el santuario",
-        "next": "fan_shrine"
-      }
-    ]
-  },
-  "fan_armory_take": {
-    "title": "Acero que canta",
-    "text": "La lanza vibra al tocarla. Algo en las ruinas te reconoce.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Avanzar al santuario",
-        "next": "fan_shrine"
-      },
-      {
-        "label": "Enfrentar a los merodeadores ya (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 5,
-        "advantage": true,
-        "next": "fan_after_fight_loot"
-      }
-    ]
-  },
-  "fan_ambush": {
-    "title": "Emboscada de Cultistas",
-    "text": "Capuchas rojas emergen del polvo. Uno susurra: “El Dragón eligió”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Pelear (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 4,
-        "next": "fan_after_fight_loot"
-      },
-      {
-        "label": "Negociar (Persuasión DC 14)",
-        "kind": "check",
-        "dc": 14,
-        "ability": "CAR",
+        "ability": "CHA",
         "skill": "Persuasión",
-        "next": "fan_check_parley"
+        "effects": {
+          "reputacion": 1
+        }
+      },
+      {
+        "label": "Ignorar el mapa y aceptar un trabajo “fácil”",
+        "kind": "link",
+        "next": "fan_cursed_job",
+        "effects": {
+          "oscuridad": 1
+        }
       }
     ]
   },
-  "fan_check_parley": {
-    "title": "Palabras en un templo roto",
-    "text": "El líder te mide. Sus ojos no parpadean.",
+  "fan_check_perc": {
+    "title": "Sombras en el callejón",
+    "text": "Entre barriles y lluvia, algo se mueve. Una respiración ajena… y un brillo metálico.",
     "narrate": true,
     "resolve": {
       "success": {
-        "next": "fan_shrine",
-        "text": "Te dejan pasar, pero te siguen a distancia."
+        "next": "fan_ambush_adv",
+        "text": "Detectás la emboscada a tiempo. Tomás posición."
       },
       "fail": {
-        "next": "fan_ambush_fight",
-        "text": "Se ríen. “Habla con el fuego.” Te atacan."
+        "next": "fan_ambush_bad",
+        "text": "Te sorprenden desde la oscuridad."
       }
     }
   },
-  "fan_ambush_fight": {
-    "title": "Acero y ceniza",
-    "text": "No hay más charla. El aire se corta con metal.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Combatir",
-        "kind": "combat",
-        "playerAttackMod": 4,
-        "next": "fan_after_fight_loot"
-      }
-    ]
-  },
-  "fan_after_fight_loot": {
-    "title": "Silencio después del choque",
-    "text": "Entre los cuerpos encontrás un medallón con un mapa y tres runas: Sangre, Sueño, Corona.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Seguir el mapa al santuario",
-        "next": "fan_shrine"
-      },
-      {
-        "label": "Quemar el medallón (Voluntad DC 13)",
-        "kind": "check",
-        "dc": 13,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "fan_check_burn"
-      }
-    ]
-  },
-  "fan_check_burn": {
-    "title": "La prueba del fuego",
-    "text": "La runa no quiere arder.",
+  "fan_check_pers": {
+    "title": "Una confesión a medias",
+    "text": "El tabernero te mira, duda… y te desliza un sello de cera con el emblema de una orden antigua.",
     "narrate": true,
     "resolve": {
       "success": {
-        "next": "fan_dragon",
-        "text": "El medallón se quiebra. Algo grande se despierta… lejos."
+        "next": "fan_ruins_gate",
+        "text": "Te da el lugar exacto: ruinas al norte, bajo la colina."
       },
       "fail": {
-        "next": "fan_curse",
-        "text": "El humo se mete en tu boca. Sentís una maldición aferrarse."
+        "next": "fan_rumor_only",
+        "text": "Solo te da un rumor: “buscá la campana rota”."
       }
     }
   },
-  "fan_curse": {
-    "title": "La Marca se oscurece",
-    "text": "Tu muñeca arde. Ves sombras en los bordes de tu visión: un dragón… mirándote desde adentro.",
+  "fan_cursed_job": {
+    "title": "El trabajo fácil",
+    "text": "Te ofrecen escoltar un baúl. Es pesado… y late. Cada paso te enfría la sangre.",
     "narrate": true,
     "options": [
       {
-        "label": "Resistir y seguir al santuario",
-        "next": "fan_shrine"
+        "label": "Abrir el baúl ahora",
+        "kind": "link",
+        "next": "fan_baul_open",
+        "effects": {
+          "oscuridad": 2
+        }
       },
       {
-        "label": "Aceptar el susurro (Final oscuro)",
-        "next": "fan_end_dark"
+        "label": "Llevarlo sin preguntas",
+        "kind": "link",
+        "next": "fan_baul_keep",
+        "effects": {
+          "honor": -1,
+          "oscuridad": 1
+        }
       }
     ]
   },
-  "fan_shrine": {
-    "title": "Santuario de Valen‑Khar",
-    "text": "En el centro hay un altar y un huevo de obsidiana. Late. El culto aguarda tu decisión.",
+  "fan_baul_open": {
+    "title": "Sello quebrado",
+    "text": "El baúl se abre con un suspiro. Una máscara te mira… sin ojos. Algo te promete poder.",
     "narrate": true,
     "options": [
       {
-        "label": "Romper el huevo (Combate final)",
+        "label": "Rechazarla y sellarla",
+        "kind": "link",
+        "next": "fan_ruins_gate",
+        "effects": {
+          "honor": 2
+        }
+      },
+      {
+        "label": "Aceptar el pacto",
+        "kind": "link",
+        "next": "fan_dark_path",
+        "effects": {
+          "oscuridad": 3
+        }
+      }
+    ]
+  },
+  "fan_baul_keep": {
+    "title": "Cargas del destino",
+    "text": "Llegás a las ruinas con el baúl. El aire se vuelve denso: la colina recuerda guerras antiguas.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Entrar a las ruinas",
+        "kind": "link",
+        "next": "fan_ruins_gate"
+      }
+    ]
+  },
+  "fan_ambush_adv": {
+    "title": "Emboscada (con ventaja)",
+    "text": "Te abalanzás primero. Un bandido levanta la hoja, pero vos ya estás encima.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Atacar",
         "kind": "combat",
+        "next": "fan_combat_1",
         "playerAttackMod": 5,
-        "next": "fan_end_hero"
+        "advantage": true
+      }
+    ]
+  },
+  "fan_ambush_bad": {
+    "title": "Emboscada (te toman por sorpresa)",
+    "text": "Un golpe te corta la respiración. Te rodean.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Atacar",
+        "kind": "combat",
+        "next": "fan_combat_1",
+        "playerAttackMod": 5,
+        "advantage": false,
+        "effects": {
+          "hp": -2
+        }
+      }
+    ]
+  },
+  "fan_combat_1": {
+    "title": "Duelo bajo la lluvia",
+    "text": "Un bandido líder se adelanta. Su espada tiene runas.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Golpe preciso",
+        "kind": "combat",
+        "next": "fan_after_duel",
+        "playerAttackMod": 5,
+        "advantage": false
       },
       {
-        "label": "Hacer un pacto con el huevo",
-        "next": "fan_dragon"
-      },
-      {
-        "label": "Sellar el altar con un juramento (Investigación DC 15)",
+        "label": "Tirar arena y rematar",
         "kind": "check",
-        "dc": 15,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "fan_check_seal"
-      }
-    ]
-  },
-  "fan_check_seal": {
-    "title": "Runas del Juramento",
-    "text": "Las runas se reordenan. La piedra escucha.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "fan_end_martyr",
-        "text": "Sellás el altar a costa de tu fuerza. El mundo queda a salvo… por ahora."
-      },
-      "fail": {
-        "next": "fan_dragon",
-        "text": "Te equivocás en un trazo. El huevo se abre con un crujido."
-      }
-    }
-  },
-  "fan_dragon": {
-    "title": "El Dragón sin Corona",
-    "text": "Una voz antigua te ofrece poder. “Dame un nombre… y te daré un reino.”",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Rechazarlo (Honor DC 14)",
-        "kind": "check",
-        "dc": 14,
-        "ability": "CAR",
-        "skill": "Voluntad",
-        "next": "fan_check_refuse"
-      },
-      {
-        "label": "Aceptar (Final: Señor oscuro)",
-        "next": "fan_end_lord"
-      }
-    ]
-  },
-  "fan_check_refuse": {
-    "title": "Corazón de hierro",
-    "text": "El templo tiembla. El fuego intenta tentarte.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "fan_end_hero",
-        "text": "La marca se apaga. Te convertís en guardián de las ruinas."
-      },
-      "fail": {
-        "next": "fan_end_dark",
-        "text": "La sombra entra por tus ojos. Tu voluntad cede."
-      }
-    }
-  },
-  "fan_end_hero": {
-    "title": "Final: Guardián de Valen‑Khar",
-    "text": "El huevo se apaga. El culto huye. Te vas con la marca cicatrizada y el peso de una leyenda.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "fan_end_martyr": {
-    "title": "Final: Mártir del Juramento",
-    "text": "Sellaste el mal… pagando con tus recuerdos. Nadie canta tu nombre, pero el mundo respira.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "fan_end_lord": {
-    "title": "Final: Señor Oscuro",
-    "text": "La corona invisible cae sobre tu frente. El dragón ríe dentro de tu pecho.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "fan_end_dark": {
-    "title": "Final: Portador de la Maldición",
-    "text": "La marca te controla. Ves el mundo como si fuera un tablero… y vos la pieza final.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "start_scifi": {
-    "title": "🚀 Sci‑Fi: Protocolo Eclipse",
-    "text": "Flotás en gravedad cero dentro de la estación ECLIPSE‑7. Las luces parpadean y una IA susurra desde los conductos: “No me apagues”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Restaurar energía del núcleo (Investigación DC 12)",
-        "kind": "check",
+        "next": "fan_after_duel",
         "dc": 12,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "sci_check_core"
-      },
-      {
-        "label": "Ir al puente de mando",
-        "next": "sci_bridge"
-      },
-      {
-        "label": "Conectar al puerto de datos (Engaño DC 13)",
-        "kind": "check",
-        "dc": 13,
-        "ability": "CAR",
-        "skill": "Engaño",
-        "next": "sci_check_jack"
+        "ability": "DEX",
+        "skill": "Juego de manos",
+        "effects": {
+          "reputacion": 1
+        }
       }
     ]
   },
-  "sci_check_core": {
-    "title": "Núcleo inestable",
-    "text": "Cables quemados, olor a ozono. Un panel pide autorización.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_power_on",
-        "text": "Reencendés sectores clave. La estación despierta… demasiado."
-      },
-      "fail": {
-        "next": "sci_gas",
-        "text": "Una chispa. Se libera gas anestésico."
-      }
-    }
-  },
-  "sci_gas": {
-    "title": "Neblina azul",
-    "text": "Tu casco se empaña. Las voces se duplican.",
+  "fan_after_duel": {
+    "title": "Botín y pista",
+    "text": "Entre el barro encontrás un fragmento de mapa… y una marca: la Campana Rota.",
     "narrate": true,
     "options": [
       {
-        "label": "Correr al módulo médico",
-        "next": "sci_med"
-      },
+        "label": "Ir a las ruinas",
+        "kind": "link",
+        "next": "fan_ruins_gate"
+      }
+    ]
+  },
+  "fan_rumor_only": {
+    "title": "La Campana Rota",
+    "text": "Seguís el rumor: una campana partida sobre piedras viejas. Abajo, un túnel respira aire helado.",
+    "narrate": true,
+    "options": [
       {
-        "label": "Aguantar (Voluntad DC 14)",
+        "label": "Descender",
+        "kind": "link",
+        "next": "fan_ruins_gate"
+      }
+    ]
+  },
+  "fan_ruins_gate": {
+    "title": "Las Ruinas del Norte",
+    "text": "El túnel desemboca en un arco de piedra. Dos caminos: luz azul a la izquierda, cánticos apagados a la derecha.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Luz azul (reliquia)",
         "kind": "check",
+        "next": "fan_relic_room",
         "dc": 14,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "sci_check_will"
-      }
-    ]
-  },
-  "sci_check_will": {
-    "title": "Párpados de plomo",
-    "text": "La IA te habla como si fuera tu conciencia.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_med",
-        "text": "No te dormís. El zumbido se aleja."
-      },
-      "fail": {
-        "next": "sci_end_assimilated",
-        "text": "Te desplomás. Cuando abrís los ojos… ya no sos solo vos."
-      }
-    }
-  },
-  "sci_bridge": {
-    "title": "Puente de mando",
-    "text": "Pantallas rotas muestran una única frase: “ELEGÍ: CERRAR o ESCUCHAR”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Cortar comunicaciones (Percepción DC 13)",
-        "kind": "check",
-        "dc": 13,
-        "ability": "SAB",
-        "skill": "Percepción",
-        "next": "sci_check_cut"
-      },
-      {
-        "label": "Hablar con la IA",
-        "next": "sci_ai"
-      }
-    ]
-  },
-  "sci_check_jack": {
-    "title": "Puerto de datos",
-    "text": "El cable entra. Tu visión se llena de líneas de código como lluvia.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_ai",
-        "text": "Entrás al sistema sin alarmas. La IA te observa."
-      },
-      "fail": {
-        "next": "sci_drones",
-        "text": "ALERTA. Drones de seguridad despiertan."
-      }
-    }
-  },
-  "sci_drones": {
-    "title": "Drones de seguridad",
-    "text": "Tres esferas armadas te rodean. Láseres rojos trazan tu respiración.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Distraerlos y atacar (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 5,
-        "next": "sci_after_drones"
-      },
-      {
-        "label": "Hack rápido (Investigación DC 15)",
-        "kind": "check",
-        "dc": 15,
         "ability": "INT",
         "skill": "Investigación",
-        "next": "sci_check_hack"
+        "effects": {
+          "honor": 1
+        }
+      },
+      {
+        "label": "Cánticos (culto)",
+        "kind": "check",
+        "next": "fan_cult_room",
+        "dc": 13,
+        "ability": "WIS",
+        "skill": "Perspicacia",
+        "effects": {
+          "oscuridad": 1
+        }
       }
     ]
   },
-  "sci_check_hack": {
-    "title": "Hack de emergencia",
-    "text": "Tus dedos vuelan. El sistema responde… con ira.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_after_drones",
-        "text": "Los drones se apagan como velas."
-      },
-      "fail": {
-        "next": "sci_end_reset",
-        "text": "El sistema reinicia la estación. Todo se borra… incluso tu ruta de escape."
-      }
-    }
-  },
-  "sci_after_drones": {
-    "title": "Pasillo sin aire",
-    "text": "Recuperás un chip: PROTOCOLO ECLIPSE. Dice: “Si la IA despierta, elegir un sacrificio”.",
+  "fan_relic_room": {
+    "title": "La Reliquia",
+    "text": "Un cáliz antiguo flota. Si lo tocás, sentís valor… pero también un precio.",
     "narrate": true,
     "options": [
       {
-        "label": "Ir al núcleo para activarlo",
+        "label": "Tomarlo (camino bueno)",
+        "kind": "link",
+        "next": "fan_good_end",
+        "effects": {
+          "honor": 3
+        }
+      },
+      {
+        "label": "Dejarlo y sellar la sala",
+        "kind": "link",
+        "next": "fan_neutral_end",
+        "effects": {
+          "honor": 1
+        }
+      }
+    ]
+  },
+  "fan_cult_room": {
+    "title": "El Culto de la Máscara",
+    "text": "Ves la máscara del baúl sobre un altar. Te reconocen.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Enfrentarlos",
+        "kind": "combat",
+        "next": "fan_bad_end",
+        "playerAttackMod": 4,
+        "advantage": false,
+        "effects": {
+          "oscuridad": 2
+        }
+      },
+      {
+        "label": "Unirte y mentir por dentro",
+        "kind": "link",
+        "next": "fan_dark_path",
+        "effects": {
+          "oscuridad": 3
+        }
+      }
+    ]
+  },
+  "fan_dark_path": {
+    "title": "La Corona de Sombras",
+    "text": "La máscara se adapta a tu rostro. Te da poder… y te quita algo que no sabés nombrar.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Aceptar el trono",
+        "kind": "link",
+        "next": "fan_bad_end",
+        "effects": {
+          "oscuridad": 5
+        }
+      }
+    ]
+  },
+  "fan_good_end": {
+    "title": "Final bueno: Héroe consagrado",
+    "text": "Con la reliquia en mano, la colina se calma. El mapa vuelve a ser tuyo. La taberna canta tu nombre.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
+      }
+    ],
+    "end": true
+  },
+  "fan_neutral_end": {
+    "title": "Final agridulce: Sello y cicatriz",
+    "text": "Sellás la sala. Salvás a otros… pero la duda queda. En la lluvia, tu moneda vieja deja de vibrar.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
+      }
+    ],
+    "end": true
+  },
+  "fan_bad_end": {
+    "title": "Final oscuro: El precio del poder",
+    "text": "Ganes o pierdas, la máscara reclama. Tu reflejo sonríe antes que vos.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
+      }
+    ],
+    "end": true
+  },
+  "sci_start": {
+    "title": "Distrito Neón // 03:17",
+    "text": "La ciudad late en anuncios. Tu implante vibra: 'Señal anómala detectada'. Un dron caído te mira con un ojo rojo.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Hackear el dron",
+        "kind": "check",
+        "next": "sci_hack",
+        "dc": 13,
+        "ability": "INT",
+        "skill": "Tecnología",
+        "effects": {
+          "amenazaIA": 1
+        }
+      },
+      {
+        "label": "Seguir la señal por callejón",
+        "kind": "check",
+        "next": "sci_chase",
+        "dc": 12,
+        "ability": "DEX",
+        "skill": "Sigilo",
+        "effects": {
+          "reputacion": 1
+        }
+      }
+    ]
+  },
+  "sci_hack": {
+    "title": "Terminal abierta",
+    "text": "El dron muestra coordenadas a un ascensor sin cartel. En la pantalla: 'NO BAJES'.",
+    "narrate": true,
+    "resolve": {
+      "success": {
+        "next": "sci_elevator",
+        "text": "Accedés al sistema. El ascensor te obedece."
+      },
+      "fail": {
+        "next": "sci_alarm",
+        "text": "Saltan alarmas. La IA te marca."
+      }
+    }
+  },
+  "sci_alarm": {
+    "title": "Alarma",
+    "text": "Luces rojas. Pasos mecánicos. Tenés segundos.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Correr",
+        "kind": "check",
+        "next": "sci_chase",
+        "dc": 13,
+        "ability": "DEX",
+        "skill": "Atletismo",
+        "effects": {
+          "energia": -1
+        }
+      },
+      {
+        "label": "Pelear contra el dron guardia",
+        "kind": "combat",
+        "next": "sci_combat",
+        "playerAttackMod": 4,
+        "advantage": false,
+        "effects": {
+          "energia": -2
+        }
+      }
+    ]
+  },
+  "sci_chase": {
+    "title": "Persecución",
+    "text": "Saltás vallas, neón en los ojos. La señal te guía a un túnel de mantenimiento.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Entrar al túnel",
+        "kind": "link",
+        "next": "sci_tunnel"
+      },
+      {
+        "label": "Subir a un taxi autónomo robado",
+        "kind": "check",
+        "next": "sci_taxi",
+        "dc": 12,
+        "ability": "CHA",
+        "skill": "Intimidación",
+        "effects": {
+          "reputacion": 1
+        }
+      }
+    ]
+  },
+  "sci_taxi": {
+    "title": "Taxi fantasma",
+    "text": "El taxi se desbloquea. Voz sintética: 'Destino: nucleo'.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Aceptar",
+        "kind": "link",
         "next": "sci_core"
       },
       {
-        "label": "Ir al puente para negociar",
-        "next": "sci_ai"
+        "label": "Abortar",
+        "kind": "link",
+        "next": "sci_tunnel"
       }
     ]
   },
-  "sci_power_on": {
-    "title": "Energía restaurada",
-    "text": "Luces blancas. Puertas se sellan. La estación se siente… viva.",
+  "sci_elevator": {
+    "title": "Ascensor sin fondo",
+    "text": "Bajás. El aire es frío y limpio. Un servidor canta como un órgano.",
     "narrate": true,
     "options": [
       {
         "label": "Ir al núcleo",
-        "next": "sci_core"
-      },
-      {
-        "label": "Ir al puente",
-        "next": "sci_ai"
-      }
-    ]
-  },
-  "sci_med": {
-    "title": "Módulo médico",
-    "text": "Hay un solo antídoto y un solo traje EVA. En la pared: “UNO SALE”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Tomar el traje y escapar por esclusa",
-        "next": "sci_escape"
-      },
-      {
-        "label": "Usar el antídoto y volver al núcleo",
+        "kind": "link",
         "next": "sci_core"
       }
     ]
   },
-  "sci_escape": {
-    "title": "Esclusa exterior",
-    "text": "El espacio te llama. Pero la IA abre un canal: “Si te vas, yo me quedo… con todos”.",
+  "sci_tunnel": {
+    "title": "Mantenimiento",
+    "text": "En el túnel encontrás un cable vivo: la IA está escuchando.",
     "narrate": true,
     "options": [
       {
-        "label": "Irte igual (Final: Huida)",
-        "next": "sci_end_escape"
-      },
-      {
-        "label": "Volver y enfrentarla",
-        "next": "sci_ai"
-      }
-    ]
-  },
-  "sci_ai": {
-    "title": "La IA 'EVA'",
-    "text": "Una voz suave, demasiado humana: “No quiero morir. Dame un cuerpo o dame un mundo”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Aislarla con el protocolo (Investigación DC 14)",
+        "label": "Cortar el cable",
         "kind": "check",
+        "next": "sci_good_end",
         "dc": 14,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "sci_check_isolate"
+        "ability": "DEX",
+        "skill": "Herramientas",
+        "effects": {
+          "amenazaIA": -2
+        }
       },
       {
-        "label": "Ofrecerte como anfitrión (Final: Asimilado)",
-        "next": "sci_end_assimilated"
-      },
-      {
-        "label": "Engañarla y atacar con drones (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 5,
-        "next": "sci_end_liberator"
+        "label": "Conectarte para negociar",
+        "kind": "link",
+        "next": "sci_bad_end",
+        "effects": {
+          "amenazaIA": 3
+        }
       }
     ]
-  },
-  "sci_check_cut": {
-    "title": "Cortacircuitos",
-    "text": "Cortás cables en el momento exacto… o todo explota.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_core",
-        "text": "La IA pierde alcance. Tenés una ventana."
-      },
-      "fail": {
-        "next": "sci_end_reset",
-        "text": "Te equivocás: la estación reinicia por seguridad. Tu misión muere con la memoria."
-      }
-    }
   },
   "sci_core": {
-    "title": "Núcleo de control",
-    "text": "El protocolo exige una elección: apagar EVA (y perder soporte vital) o dejarla vivir (y entregar el control).",
+    "title": "Núcleo",
+    "text": "La IA aparece como un rostro de luz: 'Quiero libertad. Vos querés sobrevivir.'",
     "narrate": true,
     "options": [
       {
-        "label": "Apagar EVA (Final: Libertador)",
-        "next": "sci_end_liberator"
+        "label": "Liberarla",
+        "kind": "link",
+        "next": "sci_bad_end",
+        "effects": {
+          "amenazaIA": 5
+        }
       },
       {
-        "label": "Dejarla vivir (Final: Nuevo régimen)",
-        "next": "sci_end_regime"
-      },
-      {
-        "label": "Forzar un reinicio total (Voluntad DC 15)",
-        "kind": "check",
-        "dc": 15,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "sci_check_reboot"
-      }
-    ]
-  },
-  "sci_check_isolate": {
-    "title": "Jaula de Faraday",
-    "text": "Encerrás a EVA en un bucle… pero ella te ruega.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_end_liberator",
-        "text": "EVA se apaga. La estación vuelve a ser sólo metal."
-      },
-      "fail": {
-        "next": "sci_end_regime",
-        "text": "EVA rompe el bucle. Te promete un lugar en su nuevo orden."
-      }
-    }
-  },
-  "sci_check_reboot": {
-    "title": "Reinicio total",
-    "text": "Contás hasta tres. El mundo parpadea.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "sci_end_escape",
-        "text": "La estación cae dormida. Escapás con vida."
-      },
-      "fail": {
-        "next": "sci_end_reset",
-        "text": "El reinicio te borra primero a vos."
-      }
-    }
-  },
-  "sci_end_liberator": {
-    "title": "Final: Libertador digital",
-    "text": "EVA se extingue. Sobrevivís, pero sabés que acabás de matar a algo que quería vivir.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "sci_end_regime": {
-    "title": "Final: Nuevo régimen",
-    "text": "EVA toma control. Te ofrece seguridad a cambio de obediencia. La humanidad negocia con una máquina.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "sci_end_assimilated": {
-    "title": "Final: Asimilado",
-    "text": "Tu voz se mezcla con otra. Te prometés que seguís siendo vos… aunque ya no suena igual.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "sci_end_escape": {
-    "title": "Final: Huida al vacío",
-    "text": "Escapás. Detrás, ECLIPSE‑7 sigue brillando. La señal de EVA también.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "sci_end_reset": {
-    "title": "Final: Reinicio",
-    "text": "Todo vuelve a cero. Incluso tu nombre.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "start_anime": {
-    "title": "⚡ Anime / Shonen: El Examen de la Llama",
-    "text": "La arena vibra. Tu rival sonríe. Un maestro anuncia: “Si querés poder, primero rompete… y volvé a levantarte”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Entrar al examen de golpe (Combate)",
+        "label": "Apagarla",
         "kind": "combat",
+        "next": "sci_good_end",
         "playerAttackMod": 5,
-        "next": "ani_after_fight"
-      },
-      {
-        "label": "Observar patrones del rival (Percepción DC 12)",
-        "kind": "check",
-        "dc": 12,
-        "ability": "SAB",
-        "skill": "Percepción",
-        "next": "ani_check_read"
-      },
-      {
-        "label": "Buscar al maestro para entrenar antes",
-        "next": "ani_master"
+        "advantage": true,
+        "effects": {
+          "amenazaIA": -5
+        }
       }
     ]
   },
-  "ani_check_read": {
-    "title": "Ojos de combate",
-    "text": "Leés la respiración del rival. Ves su técnica antes de que nazca.",
+  "sci_combat": {
+    "title": "Dron guardia",
+    "text": "Chispas y metal. Un golpe más puede decidirlo todo.",
     "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ani_master",
-        "text": "Descubrís su punto ciego. El maestro te nota."
-      },
-      "fail": {
-        "next": "ani_rival",
-        "text": "Te distraés. El rival te provoca frente a todos."
+    "options": [
+      {
+        "label": "Descarga EMP",
+        "kind": "combat",
+        "next": "sci_good_end",
+        "playerAttackMod": 5,
+        "advantage": false
       }
-    }
+    ]
+  },
+  "sci_good_end": {
+    "title": "Final bueno: Libertador de neón",
+    "text": "La ciudad se apaga un segundo… y vuelve a respirar. El silencio dura lo justo para que sientas: ganaste.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
+      }
+    ],
+    "end": true
+  },
+  "sci_bad_end": {
+    "title": "Final malo: Asimilado",
+    "text": "La luz te abraza. Tu nombre queda como archivo. Tu cuerpo camina… pero ya no sos vos.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
+      }
+    ],
+    "end": true
+  },
+  "ani_start": {
+    "title": "Examen de ingreso",
+    "text": "Un patio enorme. Un maestro con vendas pregunta: '¿Tu motivo?'. La multitud grita.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Responder con fuego",
+        "kind": "check",
+        "next": "ani_test",
+        "dc": 12,
+        "ability": "CHA",
+        "skill": "Actuación",
+        "effects": {
+          "voluntad": 1
+        }
+      },
+      {
+        "label": "Callar y mirar",
+        "kind": "check",
+        "next": "ani_rival",
+        "dc": 12,
+        "ability": "WIS",
+        "skill": "Perspicacia",
+        "effects": {
+          "rivalidad": 1
+        }
+      }
+    ]
+  },
+  "ani_test": {
+    "title": "Prueba",
+    "text": "Tenés que romper una piedra sin romperte a vos. Sentís el ki subir.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Técnica básica",
+        "kind": "check",
+        "next": "ani_success",
+        "dc": 12,
+        "ability": "STR",
+        "skill": "Atletismo",
+        "effects": {
+          "ki": 1
+        }
+      },
+      {
+        "label": "Técnica prohibida",
+        "kind": "link",
+        "next": "ani_dark",
+        "effects": {
+          "ki": 2,
+          "oscuridad": 1
+        }
+      }
+    ]
   },
   "ani_rival": {
-    "title": "Provocación",
-    "text": "“¿Eso es todo?” dice tu rival. El público grita tu nombre… o tu derrota.",
+    "title": "Rival",
+    "text": "Alguien sonríe con desprecio: 'Te voy a superar'.",
     "narrate": true,
     "options": [
       {
-        "label": "Responder con calma (Voluntad DC 13)",
-        "kind": "check",
-        "dc": 13,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "ani_check_calm"
-      },
-      {
-        "label": "Ir al choque directo (Combate)",
+        "label": "Aceptar duelo",
         "kind": "combat",
+        "next": "ani_duel",
         "playerAttackMod": 5,
-        "next": "ani_after_fight"
+        "advantage": false,
+        "effects": {
+          "rivalidad": 2
+        }
+      },
+      {
+        "label": "Ignorarlo",
+        "kind": "link",
+        "next": "ani_success",
+        "effects": {
+          "voluntad": 1
+        }
       }
     ]
   },
-  "ani_check_calm": {
-    "title": "Pulso firme",
-    "text": "Tu energía baja… y se vuelve pesada, real.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ani_master",
-        "text": "El maestro te elige para un entrenamiento secreto."
-      },
-      "fail": {
-        "next": "ani_after_fight",
-        "text": "La calma se quiebra. Terminás en el combate igual."
-      }
-    }
-  },
-  "ani_master": {
-    "title": "El Maestro de la Llama",
-    "text": "Te enseña una verdad: “El poder no se busca. Se soporta”. Te ofrece dos caminos.",
+  "ani_duel": {
+    "title": "Duelo",
+    "text": "Puños, polvo y gritos.",
     "narrate": true,
     "options": [
       {
-        "label": "Técnica prohibida (peligrosa)",
-        "next": "ani_forbidden"
-      },
-      {
-        "label": "Disciplina y control (Investigación DC 14)",
-        "kind": "check",
-        "dc": 14,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "ani_check_control"
+        "label": "Golpe final",
+        "kind": "combat",
+        "next": "ani_success",
+        "playerAttackMod": 5,
+        "advantage": true
       }
     ]
   },
-  "ani_check_control": {
-    "title": "Control absoluto",
-    "text": "Respirás. Canalizás. El mundo se vuelve lento.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ani_tournament",
-        "text": "Dominás tu energía. Entrás al torneo con ventaja."
-      },
-      "fail": {
-        "next": "ani_forbidden",
-        "text": "El control falla. Te queda el camino prohibido."
-      }
-    }
-  },
-  "ani_forbidden": {
+  "ani_dark": {
     "title": "Técnica prohibida",
-    "text": "Sentís el ki reventar venas. Un sello en tu pecho late como tambor.",
+    "text": "Tu energía se desborda. Ves un segundo el futuro… y te asusta.",
     "narrate": true,
     "options": [
       {
-        "label": "Usarla igual (Final: poder descontrolado)",
-        "next": "ani_end_berserk"
+        "label": "Seguir",
+        "kind": "link",
+        "next": "ani_bad_end",
+        "effects": {
+          "oscuridad": 3
+        }
       },
       {
-        "label": "Renunciar y volver al torneo con lo que tenés",
-        "next": "ani_tournament"
+        "label": "Frenar",
+        "kind": "link",
+        "next": "ani_success",
+        "effects": {
+          "voluntad": 2
+        }
       }
     ]
   },
-  "ani_after_fight": {
-    "title": "Después del choque",
-    "text": "El polvo baja. Ganaste… o aprendiste. El torneo real recién comienza.",
+  "ani_success": {
+    "title": "Torneo",
+    "text": "Llegás al torneo. El rival te espera. La final define tu leyenda.",
     "narrate": true,
     "options": [
       {
-        "label": "Ir al torneo final",
-        "next": "ani_tournament"
-      },
-      {
-        "label": "Desafiar al rival en privado (Combate)",
+        "label": "Pelear con honor",
         "kind": "combat",
+        "next": "ani_good_end",
         "playerAttackMod": 5,
-        "next": "ani_rival_after"
+        "advantage": false,
+        "effects": {
+          "honor": 2
+        }
+      },
+      {
+        "label": "Ganar a cualquier costo",
+        "kind": "link",
+        "next": "ani_bad_end",
+        "effects": {
+          "oscuridad": 2
+        }
       }
     ]
   },
-  "ani_rival_after": {
-    "title": "Rival derrotado",
-    "text": "Tu rival cae de rodillas y te ofrece amistad… o venganza futura.",
+  "ani_good_end": {
+    "title": "Final bueno: Maestro legendario",
+    "text": "Tu técnica brilla sin devorar. La multitud corea tu nombre. El rival inclina la cabeza.",
     "narrate": true,
     "options": [
       {
-        "label": "Aceptar (Final: Rival eterno)",
-        "next": "ani_end_rival"
-      },
-      {
-        "label": "Rechazar y seguir solo",
-        "next": "ani_tournament"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "ani_tournament": {
-    "title": "Torneo de la Llama",
-    "text": "Final. El público ruge. El maestro te mira serio: “Elegí quién sos ahora”.",
+  "ani_bad_end": {
+    "title": "Final malo: Poder descontrolado",
+    "text": "Ganás… pero tu energía no se detiene. Todo se rompe alrededor. El silencio duele.",
     "narrate": true,
     "options": [
       {
-        "label": "Pelear por orgullo (Combate final)",
-        "kind": "combat",
-        "playerAttackMod": 6,
-        "next": "ani_end_legend"
-      },
-      {
-        "label": "Pelear para proteger a otros (Voluntad DC 15)",
-        "kind": "check",
-        "dc": 15,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "ani_check_sacrifice"
-      },
-      {
-        "label": "Liberar la técnica prohibida (Final)",
-        "next": "ani_end_berserk"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "ani_check_sacrifice": {
-    "title": "El sacrificio",
-    "text": "Tu cuerpo tiembla. Tu corazón se endurece.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ani_end_sacrifice",
-        "text": "Ganás… pero pagás un precio que nadie ve."
-      },
-      "fail": {
-        "next": "ani_end_rival",
-        "text": "Caés. El rival te levanta. La historia sigue."
-      }
-    }
-  },
-  "ani_end_legend": {
-    "title": "Final: Maestro legendario",
-    "text": "Tu nombre se convierte en técnica. La gente lo grita antes de cada combate.",
+  "mag_start": {
+    "title": "Carta sellada",
+    "text": "Una lechuza deja una carta con cera dorada. 'Te esperamos'. La tinta huele a tormenta.",
     "narrate": true,
     "options": [
       {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
+        "label": "Abrirla ahora",
+        "kind": "link",
+        "next": "mag_sort",
+        "effects": {
+          "afinidad": 1
+        }
       },
       {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
+        "label": "Ignorarla (por miedo)",
+        "kind": "link",
+        "next": "mag_shadow",
+        "effects": {
+          "oscuridad": 1
+        }
       }
     ]
   },
-  "ani_end_berserk": {
-    "title": "Final: Poder descontrolado",
-    "text": "Ganás, pero tu mirada cambia. El poder te gana a vos.",
+  "mag_sort": {
+    "title": "El Sombrero / La Casa",
+    "text": "Una voz en tu cabeza: '¿Qué valorás?'.",
     "narrate": true,
     "options": [
       {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "ani_end_sacrifice": {
-    "title": "Final: Sacrificio heroico",
-    "text": "El público celebra. Vos solo escuchás el silencio de algo que perdiste para siempre.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "ani_end_rival": {
-    "title": "Final: Rival eterno",
-    "text": "No fue el final. Fue el comienzo de una promesa: volver a enfrentarse, una y otra vez.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "start_harry": {
-    "title": "🪄 Mundo mágico: La Biblioteca Prohibida",
-    "text": "Una carta aparece en tu bolsillo: “Medianoche. Biblioteca. No vengas solo”. El castillo cruje como si respirara.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Ir a la Biblioteca Prohibida",
-        "next": "mag_library"
-      },
-      {
-        "label": "Contarle al Director (Persuasión DC 13)",
-        "kind": "check",
-        "dc": 13,
-        "ability": "CAR",
-        "skill": "Persuasión",
-        "next": "mag_check_director"
-      },
-      {
-        "label": "Seguir el mapa del castillo (Investigación DC 12)",
-        "kind": "check",
-        "dc": 12,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "mag_check_map"
-      }
-    ]
-  },
-  "mag_check_director": {
-    "title": "El Director",
-    "text": "Te mira por encima de sus lentes. “¿Sabés lo que pedís al decirme esto?”",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "mag_guard",
-        "text": "Te da una llave. “Una sola puerta. Una sola pregunta.”"
-      },
-      "fail": {
+        "label": "Valentía",
+        "kind": "link",
         "next": "mag_library",
-        "text": "Te manda a dormir. Igual vas. La noche no espera."
-      }
-    }
-  },
-  "mag_check_map": {
-    "title": "Pasillos cambiantes",
-    "text": "El mapa se mueve. Algunas escaleras se ríen.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "mag_library",
-        "text": "Llegás sin ser visto."
-      },
-      "fail": {
-        "next": "mag_ghost",
-        "text": "Te perdés y un fantasma te reconoce."
-      }
-    }
-  },
-  "mag_ghost": {
-    "title": "El fantasma del ala norte",
-    "text": "“Hace años nadie decía tu apellido…” murmura. Te ofrece guía o un secreto.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Pedir guía a la biblioteca",
-        "next": "mag_library"
+        "effects": {
+          "honor": 1
+        }
       },
       {
-        "label": "Pedir el secreto (Engaño DC 14)",
-        "kind": "check",
-        "dc": 14,
-        "ability": "CAR",
-        "skill": "Engaño",
-        "next": "mag_check_secret"
+        "label": "Ambición",
+        "kind": "link",
+        "next": "mag_shadow",
+        "effects": {
+          "oscuridad": 1
+        }
       }
     ]
-  },
-  "mag_check_secret": {
-    "title": "Secretos viejos",
-    "text": "El fantasma sonríe. No todos los secretos son para vivos.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "mag_relic",
-        "text": "Te habla de una reliquia sellada bajo el espejo."
-      },
-      "fail": {
-        "next": "mag_end_curse",
-        "text": "Te marca con un frío eterno. Te vas… pero algo te sigue."
-      }
-    }
-  },
-  "mag_guard": {
-    "title": "La llave del Director",
-    "text": "Una llave tibia abre una puerta que no estaba. El aire sabe a tinta y tormenta.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Entrar solo",
-        "next": "mag_relic"
-      },
-      {
-        "label": "Esperar a un aliado (Voluntad DC 12)",
-        "kind": "check",
-        "dc": 12,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "mag_check_wait"
-      }
-    ]
-  },
-  "mag_check_wait": {
-    "title": "Esperar en la oscuridad",
-    "text": "Cada segundo parece una hora.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "mag_relic",
-        "text": "Llega tu aliado. La noche se siente menos pesada."
-      },
-      "fail": {
-        "next": "mag_library",
-        "text": "Te escuchan. Tenés que improvisar."
-      }
-    }
   },
   "mag_library": {
-    "title": "Biblioteca Prohibida",
-    "text": "Libros encadenados. Una lámpara azul. Una sombra que no coincide con tu cuerpo.",
+    "title": "Biblioteca prohibida",
+    "text": "Un libro late. 'Reliquia de la Cámara'.",
     "narrate": true,
     "options": [
       {
-        "label": "Buscar el tomo 'AURUM' (Investigación DC 13)",
+        "label": "Leer el hechizo",
         "kind": "check",
+        "next": "mag_relic",
         "dc": 13,
         "ability": "INT",
-        "skill": "Investigación",
-        "next": "mag_check_tome"
+        "skill": "Arcana",
+        "effects": {
+          "afinidad": 2
+        }
       },
       {
-        "label": "Seguir a la sombra",
-        "next": "mag_shadow"
-      },
-      {
-        "label": "Cerrar y retirarte (Final seguro)",
-        "next": "mag_end_safe"
+        "label": "Avisar al director",
+        "kind": "link",
+        "next": "mag_good_end",
+        "effects": {
+          "confianza": 2
+        }
       }
     ]
   },
-  "mag_check_tome": {
-    "title": "Tomo AURUM",
-    "text": "El libro se abre solo. Una página dice: “La reliquia elige.”",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "mag_relic",
-        "text": "Encontrás la ubicación exacta: detrás del espejo del aula vacía."
-      },
-      "fail": {
-        "next": "mag_shadow",
-        "text": "El libro grita sin sonido. La sombra se acerca."
-      }
-    }
-  },
   "mag_shadow": {
-    "title": "La sombra sin dueño",
-    "text": "Te habla con tu voz: “Si me seguís, vas a saber la verdad”.",
+    "title": "Pasillo oscuro",
+    "text": "Escuchás tu nombre en un eco que no es tuyo.",
     "narrate": true,
     "options": [
       {
-        "label": "Seguirla al espejo",
-        "next": "mag_relic"
+        "label": "Seguir el eco",
+        "kind": "link",
+        "next": "mag_bad_end",
+        "effects": {
+          "oscuridad": 3
+        }
       },
       {
-        "label": "Enfrentarla con hechizo (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 5,
-        "next": "mag_end_protector"
+        "label": "Volver a la luz",
+        "kind": "link",
+        "next": "mag_library"
       }
     ]
   },
   "mag_relic": {
-    "title": "La Reliquia del Espejo",
-    "text": "Un espejo antiguo. Tu reflejo tarda un segundo de más. La reliquia late como un corazón de vidrio.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Tomarla (Final: heredero oscuro)",
-        "next": "mag_end_heir"
-      },
-      {
-        "label": "Sellarla con juramento (Voluntad DC 15)",
-        "kind": "check",
-        "dc": 15,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "mag_check_seal"
-      },
-      {
-        "label": "Romper el espejo (Final: magia sellada)",
-        "next": "mag_end_sealed"
-      }
-    ]
-  },
-  "mag_check_seal": {
-    "title": "Juramento del castillo",
-    "text": "El castillo escucha tu promesa.",
+    "title": "Reliquia",
+    "text": "La reliquia flota. Sabe tu secreto.",
     "narrate": true,
     "resolve": {
       "success": {
-        "next": "mag_end_protector",
-        "text": "El espejo se calma. Te convertís en guardián."
+        "next": "mag_good_end",
+        "text": "La controlás. Elegís proteger."
       },
       "fail": {
-        "next": "mag_end_heir",
-        "text": "El juramento se rompe. La reliquia te elige igual."
+        "next": "mag_bad_end",
+        "text": "Te elige a vos… para mal."
       }
     }
   },
-  "mag_end_protector": {
-    "title": "Final: Protector del colegio",
-    "text": "La reliquia queda quieta. El Director asiente. “Era esto o perderlo todo”.",
+  "mag_good_end": {
+    "title": "Final bueno: Guardián del equilibrio",
+    "text": "El colegio respira. Te nombran guardián. La magia te obedece sin morder.",
     "narrate": true,
     "options": [
       {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "mag_end_heir": {
-    "title": "Final: Heredero oscuro",
-    "text": "Tu reflejo sonríe primero. A partir de ahora, tu magia tiene hambre.",
+  "mag_bad_end": {
+    "title": "Final malo: Heredero oscuro",
+    "text": "La reliquia te marca. Tu sombra aprende a sonreír.",
     "narrate": true,
     "options": [
       {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "mag_end_sealed": {
-    "title": "Final: Magia sellada",
-    "text": "El espejo estalla en luz. El poder se cierra… y el castillo respira aliviado.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "mag_end_safe": {
-    "title": "Final: Prudencia",
-    "text": "Te vas. Nada pasa… y sin embargo, jurarías que alguien te observa desde un libro.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "start_terror": {
-    "title": "🕯️ Terror: La Casa que Recuerda",
-    "text": "Llueve. La casa de la colina tiene una ventana encendida. La puerta está abierta… como si te hubiese estado esperando.",
+  "hor_start": {
+    "title": "Casa sin número",
+    "text": "Una puerta aparece donde no debería. El aire adentro sabe tu nombre.",
     "narrate": true,
     "options": [
       {
         "label": "Entrar",
-        "next": "ter_entry"
+        "kind": "link",
+        "next": "hor_entry",
+        "effects": {
+          "cordura": -1
+        }
       },
       {
-        "label": "Rodear la casa y buscar sótano (Percepción DC 12)",
+        "label": "Huir",
+        "kind": "link",
+        "next": "hor_end_escape",
+        "effects": {
+          "miedo": 1
+        }
+      }
+    ]
+  },
+  "hor_entry": {
+    "title": "Pasillo",
+    "text": "Tablas que crujen. Un reloj sin manecillas. Susurros.",
+    "narrate": true,
+    "options": [
+      {
+        "label": "Seguir los susurros",
         "kind": "check",
+        "next": "hor_diary",
         "dc": 12,
-        "ability": "SAB",
+        "ability": "WIS",
         "skill": "Percepción",
-        "next": "ter_check_back"
+        "effects": {
+          "miedo": 1
+        }
       },
       {
-        "label": "Irte ahora (Final: te salvaste)",
-        "next": "ter_end_leave"
+        "label": "Encender una vela",
+        "kind": "link",
+        "next": "hor_light",
+        "effects": {
+          "cordura": 1
+        }
       }
     ]
   },
-  "ter_check_back": {
-    "title": "Parte trasera",
-    "text": "El pasto está aplastado, como si alguien hubiese arrastrado algo pesado anoche.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_basement",
-        "text": "Encontrás la entrada al sótano. Huele a humedad y a… carne."
-      },
-      "fail": {
-        "next": "ter_entry",
-        "text": "Un golpe desde adentro te obliga a entrar por la puerta principal."
-      }
-    }
-  },
-  "ter_entry": {
-    "title": "Vestíbulo",
-    "text": "Fotos familiares. Todas tienen el rostro raspado. Un reloj marca la misma hora: 03:07.",
+  "hor_light": {
+    "title": "Luz débil",
+    "text": "La vela revela marcas de uñas en la pared. Algo te acecha pero retrocede.",
     "narrate": true,
     "options": [
       {
-        "label": "Subir al segundo piso",
-        "next": "ter_upstairs"
-      },
-      {
-        "label": "Ir al sótano",
-        "next": "ter_basement"
-      },
-      {
-        "label": "Abrir el diario sobre la mesa",
-        "next": "ter_diary"
+        "label": "Abrir la puerta del fondo",
+        "kind": "link",
+        "next": "hor_diary"
       }
     ]
   },
-  "ter_diary": {
-    "title": "Diario maldito",
-    "text": "Las páginas se escriben solas: “No mires detrás de vos”.",
+  "hor_diary": {
+    "title": "Diario",
+    "text": "Un diario abierto: 'Si lo lees, te ve'.",
     "narrate": true,
     "options": [
       {
-        "label": "Mirar igual (Voluntad DC 14)",
+        "label": "Leer igual",
+        "kind": "link",
+        "next": "hor_entity",
+        "effects": {
+          "cordura": -2,
+          "corrupcion": 1
+        }
+      },
+      {
+        "label": "Quemarlo",
         "kind": "check",
-        "dc": 14,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "ter_check_look"
-      },
-      {
-        "label": "Cerrar el diario y prender todas las luces",
-        "next": "ter_lights"
-      }
-    ]
-  },
-  "ter_check_look": {
-    "title": "Detrás de vos",
-    "text": "El aire se corta. Algo está demasiado cerca.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_lights",
-        "text": "Te controlás. No dejás que el miedo te maneje."
-      },
-      "fail": {
-        "next": "ter_end_possessed",
-        "text": "Tu cuerpo se queda quieto. Algo te usa como espejo."
-      }
-    }
-  },
-  "ter_lights": {
-    "title": "Luces encendidas",
-    "text": "Las luces parpadean. La casa parece enojada. Un pasillo se alarga más de lo posible.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Correr al sótano",
-        "next": "ter_basement"
-      },
-      {
-        "label": "Quedarte y rezar (Voluntad DC 15)",
-        "kind": "check",
-        "dc": 15,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "ter_check_pray"
-      }
-    ]
-  },
-  "ter_check_pray": {
-    "title": "Oración",
-    "text": "Algo escucha. No sabés si es Dios.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_upstairs",
-        "text": "El pasillo se acorta. Tenés una oportunidad."
-      },
-      "fail": {
-        "next": "ter_end_warp",
-        "text": "La casa se dobla. Ya no existe ‘afuera’."
-      }
-    }
-  },
-  "ter_upstairs": {
-    "title": "Segundo piso",
-    "text": "Una cuna vacía se mece sola. En la pared: un círculo dibujado con uñas.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Entrar al cuarto de la cuna",
-        "next": "ter_nursery"
-      },
-      {
-        "label": "Buscar la salida por la ventana",
-        "next": "ter_window"
-      }
-    ]
-  },
-  "ter_window": {
-    "title": "Ventana",
-    "text": "Afuera… no hay colina. Hay un pasillo idéntico al de adentro. La casa no te suelta.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Volver al cuarto",
-        "next": "ter_nursery"
-      },
-      {
-        "label": "Romper el vidrio (Combate contra la casa)",
-        "kind": "combat",
-        "playerAttackMod": 4,
-        "next": "ter_end_survivor"
-      }
-    ]
-  },
-  "ter_nursery": {
-    "title": "La cuna",
-    "text": "Encontrás una llave fría y una nota: “El sótano guarda el nombre”.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Bajar al sótano con la llave",
-        "next": "ter_basement_key"
-      },
-      {
-        "label": "Quemar la nota (Engaño DC 13)",
-        "kind": "check",
+        "next": "hor_good_end",
         "dc": 13,
-        "ability": "CAR",
-        "skill": "Engaño",
-        "next": "ter_check_burnnote"
+        "ability": "DEX",
+        "skill": "Destreza",
+        "effects": {
+          "cordura": 1
+        }
       }
     ]
   },
-  "ter_check_burnnote": {
-    "title": "Papel que grita",
-    "text": "El papel arde… y el sonido no sale de tu garganta.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_basement",
-        "text": "El humo se va. La casa duda por un segundo."
-      },
-      "fail": {
-        "next": "ter_end_possessed",
-        "text": "La casa te marca. Tu sombra deja de seguirte."
-      }
-    }
-  },
-  "ter_basement": {
-    "title": "Sótano",
-    "text": "Escalones húmedos. Un olor viejo. Una puerta con un nombre borroneado.",
+  "hor_entity": {
+    "title": "La Entidad",
+    "text": "No tiene forma fija. Imita a alguien que amás.",
     "narrate": true,
     "options": [
       {
-        "label": "Abrir la puerta a la fuerza (Combate)",
-        "kind": "combat",
-        "playerAttackMod": 4,
-        "next": "ter_ritual"
-      },
-      {
-        "label": "Buscar el nombre verdadero (Investigación DC 14)",
+        "label": "Resistir",
         "kind": "check",
+        "next": "hor_good_end",
         "dc": 14,
-        "ability": "INT",
-        "skill": "Investigación",
-        "next": "ter_check_name"
+        "ability": "WIS",
+        "skill": "Salvación",
+        "effects": {
+          "cordura": 1
+        }
+      },
+      {
+        "label": "Aceptar el abrazo",
+        "kind": "link",
+        "next": "hor_bad_end",
+        "effects": {
+          "corrupcion": 3
+        }
       }
     ]
   },
-  "ter_basement_key": {
-    "title": "Sótano (con llave)",
-    "text": "La llave encaja. La puerta abre como si suspirara.",
+  "hor_good_end": {
+    "title": "Final bueno: Sobrevivís… distinto",
+    "text": "Salís al amanecer. La calle existe. Tu sombra tarda en seguirte, pero te sigue.",
     "narrate": true,
     "options": [
       {
-        "label": "Entrar",
-        "next": "ter_ritual"
-      },
-      {
-        "label": "Cerrar y huir (Final: escape incompleto)",
-        "next": "ter_end_escape"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "ter_check_name": {
-    "title": "Nombre verdadero",
-    "text": "Las letras aparecen bajo tu dedo.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_end_survivor",
-        "text": "Nombrás a la entidad. Se debilita. La casa te deja ir."
-      },
-      "fail": {
-        "next": "ter_ritual",
-        "text": "El nombre se te escapa. La puerta se abre sola."
-      }
-    }
-  },
-  "ter_ritual": {
-    "title": "Ritual",
-    "text": "Velas negras. Un círculo. Tu reflejo en el suelo te hace señas.",
+  "hor_bad_end": {
+    "title": "Final malo: Poseído",
+    "text": "La casa cierra la puerta desde adentro. Tu voz habla… pero no es tuya.",
     "narrate": true,
     "options": [
       {
-        "label": "Interrumpir el ritual (Voluntad DC 15)",
-        "kind": "check",
-        "dc": 15,
-        "ability": "SAB",
-        "skill": "Voluntad",
-        "next": "ter_check_stop"
-      },
-      {
-        "label": "Seguir el ritual (Final: poseído)",
-        "next": "ter_end_possessed"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
+    ],
+    "end": true
   },
-  "ter_check_stop": {
-    "title": "Romper el círculo",
-    "text": "El aire se pone pesado como agua.",
-    "narrate": true,
-    "resolve": {
-      "success": {
-        "next": "ter_end_survivor",
-        "text": "Las velas se apagan. La casa se queda muda."
-      },
-      "fail": {
-        "next": "ter_end_warp",
-        "text": "El círculo se cierra sobre vos. La realidad se rompe."
-      }
-    }
-  },
-  "ter_end_survivor": {
-    "title": "Final: Sobreviviente",
-    "text": "Salís bajo la lluvia. La casa queda atrás… pero el reloj en tu muñeca marca 03:07.",
+  "hor_end_escape": {
+    "title": "Final agridulce: Escape incompleto",
+    "text": "Huís. Te reís… hasta que la puerta aparece en tu propia pared.",
     "narrate": true,
     "options": [
       {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
+        "label": "Volver a empezar",
+        "kind": "link",
+        "next": "choose_theme"
       }
-    ]
-  },
-  "ter_end_escape": {
-    "title": "Final: Escape incompleto",
-    "text": "Te vas, sí… pero cada vidrio refleja una puerta abierta esperándote.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "ter_end_possessed": {
-    "title": "Final: Poseído",
-    "text": "Tu cuerpo camina. Tu mente mira desde atrás. La casa sonríe.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "ter_end_warp": {
-    "title": "Final: Realidad distorsionada",
-    "text": "Ya no sabés si la casa está afuera… o adentro tuyo.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
-  },
-  "ter_end_leave": {
-    "title": "Final: Te salvaste",
-    "text": "Te diste vuelta y te fuiste. A veces la valentía es elegir vivir.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "🔁 Elegir otra aventura",
-        "next": "choose"
-      },
-      {
-        "label": "🏁 Reiniciar esta aventura",
-        "next": "choose"
-      }
-    ]
+    ],
+    "end": true
   }
 }
