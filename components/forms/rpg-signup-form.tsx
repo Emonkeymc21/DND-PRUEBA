@@ -8,7 +8,7 @@ function fmtGenre(g: any) {
   return Array.isArray(g) ? g.join(" / ") : String(g ?? "");
 }
 
-type Props = {
+type FormProps = {
   onDone?: () => void;
   compact?: boolean;
 };
@@ -75,7 +75,7 @@ const FREQUENCY = [
 
 const AVAILABILITY = ["Mañana 10 hs", "Tarde 18 hs", "Noche 22 hs", "Fines de semana"];
 
-export function RpgSignupForm({ onDone, compact }: Props) {
+export function RpgSignupForm({ onDone, compact }: FormProps) {
   const [step, setStep] = React.useState(0);
   const [sent, setSent] = React.useState(false);
   const [sending, setSending] = React.useState(false);
@@ -295,3 +295,5 @@ export function RpgSignupForm({ onDone, compact }: Props) {
     </form>
   );
 }
+
+export default RpgSignupForm;
