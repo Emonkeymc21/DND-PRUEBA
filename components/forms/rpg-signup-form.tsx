@@ -427,4 +427,10 @@ function RpgSignupForm({ onDone, compact }: Props) {
   );
 }
 
+// Export nombrado para compatibilidad con imports del tipo:
+//   import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
+export { RpgSignupForm };
+
+// Export default para compatibilidad con:
+//   import RpgSignupForm from "@/components/forms/rpg-signup-form";
 export default RpgSignupForm;
