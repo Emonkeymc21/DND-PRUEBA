@@ -4,6 +4,47 @@ import * as React from "react";
 import scenesRaw from "@/data/simulator/scenes.es.json";
 import { Button, Card } from "@/components/ui";
 
+
+type StoryStyle = "fantasy" | "scifi" | "anime" | "harry" | "terror";
+
+function styleLabel(style: StoryStyle) {
+  switch (style) {
+    case "fantasy": return "🗡️ Fantasía";
+    case "scifi": return "🚀 Sci‑Fi";
+    case "anime": return "⚡ Anime / Shonen";
+    case "harry": return "🪄 Mundo mágico";
+    case "terror": return "🕯️ Terror";
+  }
+}
+
+function inferStyleFromSceneId(id: string): StoryStyle | null {
+  if (id === "start_fantasy") return "fantasy";
+  if (id === "start_scifi") return "scifi";
+  if (id === "start_anime") return "anime";
+  if (id === "start_harry") return "harry";
+  if (id === "start_terror") return "terror";
+  return null;
+}
+
+function applySkin(text: string, style: StoryStyle | null): string {
+  if (!style) return text;
+  // Sólo agregamos ambientación, sin tocar mecánicas.
+  const prefix = (() => {
+    switch (style) {
+      case "fantasy":
+        return "En un mundo de acero y hechicería, ";
+      case "scifi":
+        return "En el vacío frío del futuro, ";
+      case "anime":
+        return "Con la energía al máximo, ";
+      case "harry":
+        return "Entre pasillos encantados, ";
+      case "terror":
+        return "Con la oscuridad respirándote en la nuca, ";
+    }
+  })();
+  return prefix + text;
+}
 type RawSceneOption = {
   label: string;
   kind?: "check" | "combat" | "link";
@@ -135,6 +176,7 @@ function speak(text: string, rate: number, voice?: SpeechSynthesisVoice) {
 export default function SimulatorClient() {
 
   const [sceneId, setSceneId] = React.useState("start");
+  const [storyStyle, setStoryStyle] = React.useState<StoryStyle | null>(null);
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
   const [rate, setRate] = React.useState(1.0);
@@ -305,9 +347,7 @@ export default function SimulatorClient() {
           </div>
         </div>
 
-        <p className="rounded-xl border border-border/60 bg-black/30 p-4 text-lg leading-relaxed">
-          {scene.text}
-        </p>
+        <p className="rounded-xl border border-border/60 bg-black/30 p-4 text-lg leading-relaxed">{applySkin(scene.text, storyStyle)}</p>
 
         <div className="flex flex-wrap gap-2">
           <Button
