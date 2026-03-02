@@ -300,5 +300,4 @@ export function RpgSignupForm({ onDone, compact }: Props) {
   );
 }
 
-
 export default RpgSignupForm;

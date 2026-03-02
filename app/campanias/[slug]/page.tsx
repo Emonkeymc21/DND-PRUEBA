@@ -6,9 +6,8 @@ export const metadata = { title: "Campaña" };
 
 type Props = { params: { slug: string } };
 
-export default async function CampaignDetail({ 
-  // slug resolved above
-params }: Props) {
+export default async function CampaignDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
