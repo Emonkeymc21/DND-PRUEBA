@@ -203,11 +203,7 @@ export default function MesaHome() {
   const [openForm, setOpenForm] = React.useState(false);
   const [openQuiz, setOpenQuiz] = React.useState(false);
 
-  const indexVideos = [
-    { id: "DPTihWkXtEE", title: "Video del index — Intro" },
-    { id: "YJbaGMvydS4", title: "Video del index — Checklist" },
-    { id: "PJxd_s-VMmQ", title: "Video del index — Clip" }
-  ];
+  const indexVideos = VIDEOS.slice(0, 3).map((v) => ({ id: v.youtubeId, title: v.title }));
 
   const mainVideo = VIDEOS.find((v) => v.category === "Campañas")?.youtubeId ?? VIDEOS[0]?.youtubeId ?? "fUdwmhtmk1g";
 

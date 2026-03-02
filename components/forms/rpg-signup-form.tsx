@@ -8,7 +8,7 @@ function fmtGenre(g: any) {
   return Array.isArray(g) ? g.join(" / ") : String(g ?? "");
 }
 
-type FormProps = {
+type Props = {
   onDone?: () => void;
   compact?: boolean;
 };
@@ -75,33 +75,28 @@ const FREQUENCY = [
 
 const AVAILABILITY = ["Mañana 10 hs", "Tarde 18 hs", "Noche 22 hs", "Fines de semana"];
 
-export function RpgSignupForm({ onDone, compact }: FormProps) {
+export function RpgSignupForm({ onDone, compact }: Props) {
   const [step, setStep] = React.useState(0);
   const [sent, setSent] = React.useState(false);
   const [sending, setSending] = React.useState(false);
 
   const dots = [0, 1, 2, 3];
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+  if (sending) {
     e.preventDefault();
-    if (sending) return;
-
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-
-    setSending(true);
-    try {
-      await fetch("/api/forms/rpg", { method: "POST", body: fd });
-      setSent(true);
-      onDone?.();
-    } catch {
-      // Aun si falla por CORS, el envío puede haberse realizado.
-      setSent(true);
-      onDone?.();
-    } finally {
-      setSending(false);
-    }
+    return;
   }
+  setSending(true);
+  // Dejamos que el browser haga el POST al Google Forms (target hidden_iframe).
+  // Marcamos enviado con un pequeño delay para dar tiempo a completar el request.
+  window.setTimeout(() => {
+    setSent(true);
+    setSending(false);
+    onDone?.();
+  }, 700);
+}
+
 
   if (sent) {
     return (
@@ -116,7 +111,8 @@ export function RpgSignupForm({ onDone, compact }: FormProps) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} action="https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse" method="POST" target="hidden_iframe" className="space-y-4">
+      <iframe title="hidden_iframe" name="hidden_iframe" className="hidden" />
       <div className="flex items-center justify-center gap-2" aria-hidden>
         {dots.map((d) => (
           <span

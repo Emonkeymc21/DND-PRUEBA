@@ -3,7 +3,13 @@ import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
 export const metadata = { title: "Campaña" };
-export default async function CampaignDetail({ params }: { params: Promise<{ slug: string }> }) {
+
+type Props = { params: { slug: string } };
+
+// Next.js App Router provides params synchronously as a plain object.
+// Typing it explicitly avoids PageProps constraint mismatches during Netlify builds.
+export default async function CampaignDetail({ params }: Props) {
+  const { slug } = params;
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
