@@ -2,11 +2,9 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui";
-import { CAMPAIGN_EXAMPLES } from "@/data/campaigns";
-
-function fmtGenre(g: any) {
-  return Array.isArray(g) ? g.join(" / ") : String(g ?? "");
-}
+// Importante: Google Forms es MUY estricto con los valores de <option value="...">.
+// Para que el envío no falle (o no se descarte silenciosamente), estos values deben
+// coincidir EXACTAMENTE con los del index.html original.
 
 type Props = {
   onDone?: () => void;
@@ -21,26 +19,33 @@ const F = {
   experience: "entry.1662985932",
   rules: "entry.259189639",
   theme: "entry.1977972677",
-  style: "entry.430852753",
+  style: "entry.430852753", // range 1..5 (Combate <-> Rol)
   playMode: "entry.2000145625",
   freq: "entry.432896089",
-  availability: ["entry.2140878283", "entry.2065289993", "entry.876431454"] as const,
+  // Disponibilidad está separada por día en el form original:
+  availabilityFri: "entry.876431454",
+  availabilitySat: "entry.2140878283",
+  availabilitySun: "entry.2065289993",
   avoid: "entry.36863628",
   notes: "entry.28201251"
 } as const;
 
+const GOOGLE_FORM_ACTION =
+  "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse";
+
 const THEMES = [
   { label: "Fantasía Heroica Clásica", value: "Fantasía Heroica Clásica: Dragones, espadas y magia (Estilo El Señor de los Anillos o D&D Clásico)." },
   { label: "Mundo Mágico / Académico", value: "Mundo Mágico / Académico: Varitas, escuelas de magia, misterios juveniles (Estilo Harry Potter)." },
-  { label: "Estilo Anime / Shonen", value: "Estilo Anime / Shonen:\nExorcistas, cazadores de demonios, técnicas especiales y mucha acción (Estilo Jujutsu Kaisen o Demon Slayer)." },
+  { label: "Estilo Anime / Shonen", value: "Estilo Anime / Shonen: Exorcistas, cazadores de demonios, técnicas especiales y mucha acción (Estilo Jujutsu Kaisen o Demon Slayer)." },
   { label: "Supervivencia Distópica", value: "Supervivencia Distópica: Un mundo cruel, competencias, rebelión (Estilo Los Juegos del Hambre)." },
   { label: "Cyberpunk / Ciencia Ficción", value: "Cyberpunk / Ciencia Ficción: Futuro distópico, hackers, naves espaciales (Estilo Blade Runner o Star Wars)." }
 ];
 
 const EXPERIENCES = [
-  "Soy nuevo (nunca jugué)",
-  "Intermedio (jugué algunas partidas)",
-  "Avanzado (juego seguido)"
+  "Curioso/a: Nunca jugué, pero vi Stranger Things (o Big Bang Theory) y siempre quise probar.",
+  "Espectador: Veo partidas en YouTube/Twitch (Critical Role, etc.) pero nunca jugué.",
+  "Principiante: Jugué alguna vez o hace mucho tiempo.",
+  "Veterano: Conozco las reglas y tengo mis propios dados."
 ];
 
 const RULES = [
@@ -58,73 +63,52 @@ const RULES = [
 ];
 
 const PLAY_MODES = [
-  { label: "Presencial", value: "Presencial" },
-  { label: "Online", value: "Online" },
-  { label: "Me da igual", value: "Me da igual" }
+  { label: "Presencial", value: "Presencial: Tengo disponibilidad para juntarme en una casa." },
+  { label: "Virtual", value: "Virtual: Tengo PC/Celular, micrófono decente y conexión estable (Discord/Roll20)." },
+  { label: "Híbrido/Indistinto", value: "Híbrido/Indistinto: Me adapto a cualquiera de las dos." }
 ];
 
 const FREQUENCY = [
-  { label: "1 vez por semana", value: "1 vez por semana" },
-  { label: "Cada 2 semanas", value: "Cada 2 semanas" },
-  { label: "1 vez por mes", value: "1 vez por mes" },
-  { label: "Flexible", value: "Flexible" }
+  { label: "Semanal", value: "Semanal: Una vez por semana (compromiso alto)." },
+  { label: "Quincenal", value: "Quincenal: Cada dos semanas" },
+  { label: "Mensual", value: "Mensual: Una sesión larga una vez al mes" },
+  { label: "One-Shots", value: "One-Shots: Solo partidas sueltas de vez en cuando, sin continuidad." }
 ];
 
-const AVAILABILITY = ["Mañana 10 hs", "Tarde 18 hs", "Noche 22 hs", "Fines de semana"];
+const AVAIL_OPTIONS_FRI = ["Tarde 18 hs", "Noche 20 hs"];
+const AVAIL_OPTIONS_SAT = ["Tarde 18 hs", "Noche 20 hs"];
+const AVAIL_OPTIONS_SUN = ["Tarde 18 hs", "Noche 20 hs"];
 
 export function RpgSignupForm({ onDone, compact }: Props) {
   const [step, setStep] = React.useState(0);
   const [sent, setSent] = React.useState(false);
   const [sending, setSending] = React.useState(false);
 
+  const submittedRef = React.useRef(false);
+
   const dots = [0, 1, 2, 3];
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  if (sending) return;
-
-  setSending(true);
-
-  try {
-    const formEl = e.currentTarget;
-    const fd = new FormData(formEl);
-
-    // Build { [name]: string | string[] } and preserve repeated checkbox names as arrays.
-    const payload: Record<string, string | string[]> = {};
-    for (const [key, value] of fd.entries()) {
-      if (!key) continue;
-      const v = String(value);
-      if (payload[key] === undefined) {
-        payload[key] = v;
-      } else if (Array.isArray(payload[key])) {
-        (payload[key] as string[]).push(v);
-      } else {
-        payload[key] = [payload[key] as string, v];
-      }
+  // En Netlify/Next, el método más robusto es dejar que el navegador haga el POST directo
+  // a Google Forms (como en el index.html original), usando un iframe oculto como "target".
+  // Así evitamos CORS y comportamientos diferentes de serverless.
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    if (sending) {
+      e.preventDefault();
+      return;
     }
-
-    const res = await fetch("/api/rpg-signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.ok) {
-      throw new Error(
-        `Google Forms rechazo el envío (status ${data?.status ?? res.status}).`
-      );
-    }
-
-    setSent(true);
-    onDone?.();
-  } catch (err) {
-    console.error(err);
-    alert("No pudimos enviar tu respuesta al formulario. Probá de nuevo en unos segundos.");
-  } finally {
-    setSending(false);
+    setSending(true);
+    submittedRef.current = true;
+    // NO preventDefault: dejamos que el browser haga el POST real a formResponse.
   }
-}
+
+  function onIframeLoad() {
+    // El iframe carga 1 vez al montar. Solo contamos como "ok" si ya se intentó enviar.
+    if (!submittedRef.current) return;
+    setSending(false);
+    setSent(true);
+    submittedRef.current = false;
+    onDone?.();
+  }
 
 
   if (sent) {
@@ -140,7 +124,13 @@ export function RpgSignupForm({ onDone, compact }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form
+      onSubmit={submit}
+      action={GOOGLE_FORM_ACTION}
+      method="POST"
+      target="hidden_iframe"
+      className="space-y-4"
+    >
       <div className="flex items-center justify-center gap-2" aria-hidden>
         {dots.map((d) => (
           <span
@@ -217,15 +207,20 @@ export function RpgSignupForm({ onDone, compact }: Props) {
             </div>
           </div>
 
-          <label className="block text-sm font-semibold text-primary">Campaña / estilo que te gustaría</label>
-          <select name={F.style} className="w-full rounded-md border border-border/60 bg-bg px-4 py-3">
-            {CAMPAIGN_EXAMPLES.map((c) => (
-              <option key={c.slug} value={`${c.title} — ${fmtGenre(c.genre)}`}>
-                {c.title} — {fmtGenre(c.genre)}
-              </option>
-            ))}
-            <option value="Flexible / Me adapto">Flexible / Me adapto</option>
-          </select>
+          <label className="block text-sm font-semibold text-primary">Estilo de juego</label>
+          <div className="flex justify-between text-xs text-text/60">
+            <span>⚔️ Combate</span>
+            <span>🗣️ Rol</span>
+          </div>
+          <input
+            name={F.style}
+            type="range"
+            min={1}
+            max={5}
+            step={1}
+            defaultValue={3}
+            className="w-full"
+          />
         </div>
       ) : null}
 
@@ -253,16 +248,40 @@ export function RpgSignupForm({ onDone, compact }: Props) {
 
           <div className="rounded-xl border border-border/60 bg-black/20 p-3">
             <div className="text-sm font-semibold text-primary">Disponibilidad</div>
-            <div className="mt-2 grid gap-2">
-              {AVAILABILITY.map((a) => (
-                <label key={a} className="flex gap-2 text-sm">
-                  <input type="checkbox" name={F.availability[0]} value={a} />
-                  <span>{a}</span>
-                </label>
-              ))}
-            </div>
-            <div className="mt-2 text-xs text-text/60">
-              Nota: en el Google Form original esto se guarda como selección múltiple.
+            <div className="mt-2 grid gap-3 text-sm">
+              <div>
+                <div className="mb-1 font-semibold text-primary">Viernes</div>
+                <div className="grid gap-2">
+                  {AVAIL_OPTIONS_FRI.map((v) => (
+                    <label key={v} className="flex gap-2">
+                      <input type="checkbox" name={F.availabilityFri} value={v} />
+                      <span>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 font-semibold text-primary">Sábado</div>
+                <div className="grid gap-2">
+                  {AVAIL_OPTIONS_SAT.map((v) => (
+                    <label key={v} className="flex gap-2">
+                      <input type="checkbox" name={F.availabilitySat} value={v} />
+                      <span>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 font-semibold text-primary">Domingo</div>
+                <div className="grid gap-2">
+                  {AVAIL_OPTIONS_SUN.map((v) => (
+                    <label key={v} className="flex gap-2">
+                      <input type="checkbox" name={F.availabilitySun} value={v} />
+                      <span>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -316,6 +335,14 @@ export function RpgSignupForm({ onDone, compact }: Props) {
           Este formulario funciona sin DB: envía a Google Forms (como el index original). 100% gratis / Netlify-friendly.
         </div>
       )}
+
+      {/* Iframe oculto para completar el POST cross-site sin navegar */}
+      <iframe
+        name="hidden_iframe"
+        className="hidden"
+        onLoad={onIframeLoad}
+        title="hidden_iframe"
+      />
     </form>
   );
 }
