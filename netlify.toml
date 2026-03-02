@@ -2,9 +2,6 @@
   command = "npm run build"
   publish = ".next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Optional hardening: prefer npm install over npm ci on Netlify if lockfile is out of sync
 [build.environment]
   NODE_VERSION = "20"
+  NPM_VERSION = "10"

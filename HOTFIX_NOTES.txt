@@ -1,0 +1,13 @@
+HOTFIX (Netlify-safe)
+
+1) Fixed App Router dynamic route typing:
+   - app/campanias/[slug]/page.tsx now uses a plain params object type (Props) and reads params.slug.
+   - Removed the incorrect Promise-based params typing which was causing the PageProps constraint error.
+
+2) Netlify build stability:
+   - Added netlify.toml pinning NODE_VERSION=20 and NPM_VERSION=10 (matches package.json engines).
+
+3) Mesa Home video keys:
+   - Ensure Video Vault cards use key={v.id} (where id is mapped from youtubeId).
+
+After deploying, Netlify should rebuild cleanly.
