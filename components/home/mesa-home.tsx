@@ -371,7 +371,8 @@ export default function MesaHome() {
             <Button as="link" href="/simulador" className="w-full sm:w-auto">
               Probar simulador
             </Button>
-              Crear PJ
+            <Button as="link" href="/campanias" className="w-full sm:w-auto">
+              Explorar campañas
             </Button>
           </div>
         </div>
