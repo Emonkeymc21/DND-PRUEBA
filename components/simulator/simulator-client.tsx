@@ -4,44 +4,16 @@ import * as React from "react";
 import scenesRaw from "@/data/simulator/scenes.es.json";
 import { Button, Card } from "@/components/ui";
 
-type RawSceneOption = {
-  label: string;
-  kind?: "check" | "combat" | "link";
-  // some older JSONs used href instead of next
-  next?: string;
-  href?: string;
-  // check
-  dc?: number;
-  ability?: string;
-  skill?: string;
-  // combat
-  playerAttackMod?: number;
-  advantage?: boolean;
-};
-
-type RawScene = {
-  title: string;
-  text: string;
-  narrate?: boolean;
-  summary?: string; // allowed in JSON
-  options?: RawSceneOption[];
-  resolve?: {
-    success: { next: string; text: string };
-    fail: { next: string; text: string };
-  };
-};
-
 type SceneOption =
   | { label: string; next: string }
   | { label: string; next: string; kind: "check"; dc: number; ability: string; skill: string }
   | { label: string; next: string; kind: "combat"; playerAttackMod: number; advantage?: boolean }
-  | { label: string; kind: "link"; href: string; next?: string };
+  | { label: string; next: string; kind: "link"; href: string };
 
 type Scene = {
   title: string;
   text: string;
   narrate?: boolean;
-  summary?: string;
   options?: SceneOption[];
   resolve?: {
     success: { next: string; text: string };
@@ -49,70 +21,13 @@ type Scene = {
   };
 };
 
-function normalizeScenes(raw: unknown): Record<string, Scene> {
-  const obj = (raw ?? {}) as Record<string, RawScene>;
-  const out: Record<string, Scene> = {};
-
-  for (const [id, scene] of Object.entries(obj)) {
-    const options: SceneOption[] | undefined = scene.options?.map((o) => {
-      const kind = o.kind;
-      const next = o.next ?? (o.href && !/^https?:\/\//.test(o.href) && !o.href.startsWith("/") ? o.href : undefined);
-
-      if (kind === "check") {
-        return {
-          label: o.label,
-          kind: "check",
-          next: next ?? "fin",
-          dc: Number(o.dc ?? 12),
-          ability: String(o.ability ?? "DEX"),
-          skill: String(o.skill ?? "Engaño"),
-        };
-      }
-
-      if (kind === "combat") {
-        return {
-          label: o.label,
-          kind: "combat",
-          next: next ?? "fin",
-          playerAttackMod: Number(o.playerAttackMod ?? 4),
-          advantage: o.advantage,
-        };
-      }
-
-      if (kind === "link") {
-        // link can either be external/internal URL, or legacy scene id in href
-        return {
-          label: o.label,
-          kind: "link",
-          href: String(o.href ?? "/"),
-          next,
-        };
-      }
-
-      // default: plain next transition
-      return { label: o.label, next: next ?? "fin" };
-    });
-
-    out[id] = {
-      title: String(scene.title ?? id),
-      text: String(scene.text ?? ""),
-      narrate: scene.narrate,
-      summary: scene.summary,
-      options,
-      resolve: scene.resolve,
-    };
-  }
-
-  return out;
-}
-
-const scenes = normalizeScenes(scenesRaw);
+const scenes = scenesRaw as Record<string, Scene>;
 
 function rollD20() {
   return Math.floor(Math.random() * 20) + 1;
 }
 
-function speak(text: string, rate: number, voiceURI?: string) {
+function speak(text: string, rate: number, pitch: number, voiceURI?: string) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
@@ -120,6 +35,7 @@ function speak(text: string, rate: number, voiceURI?: string) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "es-AR";
   u.rate = rate;
+    u.pitch = pitch;
 
   const voices = window.speechSynthesis.getVoices();
   if (voiceURI) {
@@ -134,6 +50,8 @@ export default function SimulatorClient() {
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
   const [rate, setRate] = React.useState(1.0);
+  const [pitch, setPitch] = React.useState(0.9);
+  const [epic, setEpic] = React.useState(true);
   const [voiceURI, setVoiceURI] = React.useState<string | undefined>(undefined);
   const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [hp, setHp] = React.useState(12);
@@ -142,10 +60,25 @@ export default function SimulatorClient() {
   const scene = scenes[sceneId];
 
   React.useEffect(() => {
+    if (!epic) return;
+    // Preset épico: más lento y grave
+    setRate(0.9);
+    setPitch(0.75);
+  }, [epic]);
+
+  React.useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("speechSynthesis" in window)) return;
 
-    const load = () => setVoices(window.speechSynthesis.getVoices());
+    const load = () => {
+      const list = window.speechSynthesis.getVoices();
+      setVoices(list);
+      if (!voiceURI && list.length) {
+        const es = list.filter(v => (v.lang || "").toLowerCase().startsWith("es"));
+        const preferred = (es.find(v => /male|hombre|jorge|diego|carlos|raul/i.test(v.name)) ?? es[0]) ?? list[0];
+        setVoiceURI(preferred.voiceURI);
+      }
+    };
     load();
     window.speechSynthesis.onvoiceschanged = load;
     return () => { window.speechSynthesis.onvoiceschanged = null; };
@@ -153,7 +86,7 @@ export default function SimulatorClient() {
 
   React.useEffect(() => {
     if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI);
+    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, pitch, voiceURI);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sceneId, autoNarrate, rate, voiceURI]);
 
@@ -187,7 +120,7 @@ export default function SimulatorClient() {
     const r = target?.resolve;
     if (!r) {
       setLog((l) => [...l, "⚠️ Falta resolución para esta tirada. Continúo para evitar bloqueo."]);
-      go("combat");
+      go("ambush_intro");
       return;
     }
     go(ok ? r.success.next : r.fail.next);
@@ -271,6 +204,16 @@ export default function SimulatorClient() {
 }
 
 
+  if (!scene) {
+    return (
+      <Card className="space-y-3">
+        <h2 className="text-xl font-bold text-primary">⚠️ Escena no encontrada</h2>
+        <p className="text-sm text-text/80">Se produjo un salto a una escena inexistente. Reiniciá el simulador.</p>
+        <Button onClick={() => go("start")} type="button">Reiniciar simulador</Button>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <Card className="space-y-3">
@@ -281,6 +224,10 @@ export default function SimulatorClient() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={epic} onChange={(e) => setEpic(e.target.checked)} />
+              Voz épica
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={autoNarrate} onChange={(e) => setAutoNarrate(e.target.checked)} />
               Auto narrar
@@ -316,7 +263,7 @@ export default function SimulatorClient() {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI)}
+            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, pitch, voiceURI)}
             type="button"
             variant="ghost"
           >

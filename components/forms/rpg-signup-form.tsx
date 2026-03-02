@@ -82,21 +82,26 @@ export function RpgSignupForm({ onDone, compact }: Props) {
 
   const dots = [0, 1, 2, 3];
 
-  function submit(e: React.FormEvent<HTMLFormElement>) {
-  if (sending) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    return;
-  }
-  setSending(true);
-  // Dejamos que el browser haga el POST al Google Forms (target hidden_iframe).
-  // Marcamos enviado con un pequeño delay para dar tiempo a completar el request.
-  window.setTimeout(() => {
-    setSent(true);
-    setSending(false);
-    onDone?.();
-  }, 700);
-}
+    if (sending) return;
 
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    setSending(true);
+    try {
+      await fetch("/api/forms/rpg", { method: "POST", body: fd });
+      setSent(true);
+      onDone?.();
+    } catch {
+      // Aun si falla por CORS, el envío puede haberse realizado.
+      setSent(true);
+      onDone?.();
+    } finally {
+      setSending(false);
+    }
+  }
 
   if (sent) {
     return (
@@ -111,8 +116,7 @@ export function RpgSignupForm({ onDone, compact }: Props) {
   }
 
   return (
-    <form onSubmit={submit} action="https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse" method="POST" target="hidden_iframe" className="space-y-4">
-      <iframe title="hidden_iframe" name="hidden_iframe" className="hidden" />
+    <form onSubmit={submit} className="space-y-4">
       <div className="flex items-center justify-center gap-2" aria-hidden>
         {dots.map((d) => (
           <span
@@ -291,5 +295,3 @@ export function RpgSignupForm({ onDone, compact }: Props) {
     </form>
   );
 }
-
-export default RpgSignupForm;

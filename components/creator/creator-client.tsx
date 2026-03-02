@@ -146,7 +146,7 @@ export default function CreatorClient() {
             {races.map(r => (
               <button key={r.index} className={`rounded-xl border p-3 text-left transition ${char.race?.index===r.index ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                 onClick={() => update("race", r)} type="button">
-                <div className="font-semibold">{r.name}</div>
+                <div className="font-semibold">{tr(r.name)}</div>
                 <div className="text-xs text-text/70">{r.index}</div>
               </button>
             ))}
@@ -158,7 +158,7 @@ export default function CreatorClient() {
             {classes.map(c => (
               <button key={c.index} className={`rounded-xl border p-3 text-left transition ${char.class?.index===c.index ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                 onClick={() => update("class", c)} type="button">
-                <div className="font-semibold">{c.name}</div>
+                <div className="font-semibold">{tr(c.name)}</div>
                 <div className="text-xs text-text/70">{c.index}</div>
               </button>
             ))}
@@ -170,7 +170,7 @@ export default function CreatorClient() {
             {backgrounds.map(b => (
               <button key={b.index} className={`rounded-xl border p-3 text-left transition ${char.background?.index===b.index ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                 onClick={() => update("background", b)} type="button">
-                <div className="font-semibold">{b.name}</div>
+                <div className="font-semibold">{tr(b.name)}</div>
                 <div className="text-xs text-text/70">{b.index}</div>
               </button>
             ))}
@@ -215,7 +215,7 @@ export default function CreatorClient() {
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                     onClick={() => toggleSkill(s.name)}
                   >
-                    {s.name}
+                    {tr(s.name)}
                   </button>
                 );
               })}
@@ -234,7 +234,7 @@ export default function CreatorClient() {
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition ${active ? "border-primary bg-black/30" : "border-border/60 hover:border-primary/70"}`}
                     onClick={() => toggleSpell(s.name)}
                   >
-                    {s.name}
+                    {tr(s.name)}
                   </button>
                 );
               })}
@@ -299,4 +299,55 @@ export default function CreatorClient() {
       </Card>
     </div>
   );
+}const TR_SIMPLE: Record<string, string> = {
+  // Clases
+  Fighter: "Guerrero",
+  Rogue: "Pícaro",
+  Wizard: "Mago",
+  Cleric: "Clérigo",
+  Paladin: "Paladín",
+  Ranger: "Explorador",
+  Barbarian: "Bárbaro",
+  Bard: "Bardo",
+  Druid: "Druida",
+  Monk: "Monje",
+  Sorcerer: "Hechicero",
+  Warlock: "Brujo",
+
+  // Razas
+  Human: "Humano",
+  Elf: "Elfo",
+  Dwarf: "Enano",
+  Halfling: "Mediano",
+  Dragonborn: "Dracónido",
+  Gnome: "Gnomo",
+  "Half-Elf": "Semielfo",
+  "Half-Orc": "Semiorco",
+  Tiefling: "Tiefling",
+
+  // Atributos
+  Strength: "Fuerza",
+  Dexterity: "Destreza",
+  Constitution: "Constitución",
+  Intelligence: "Inteligencia",
+  Wisdom: "Sabiduría",
+  Charisma: "Carisma",
+
+  // Escuelas de magia (SRD)
+  Abjuration: "Abjuración",
+  Conjuration: "Conjuración",
+  Divination: "Adivinación",
+  Enchantment: "Encantamiento",
+  Evocation: "Evocación",
+  Illusion: "Ilusión",
+  Necromancy: "Nigromancia",
+  Transmutation: "Transmutación",
+};
+
+function tr(v?: string) {
+  if (!v) return "";
+  return TR_SIMPLE[v] ?? v;
 }
+
+
+

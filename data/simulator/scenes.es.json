@@ -131,7 +131,7 @@
     "options": [
       {
         "label": "Atacar primero (d20 + 5)",
-        "next": "combat",
+        "next": "ambush_intro",
         "kind": "combat",
         "playerAttackMod": 5,
         "advantage": true
@@ -153,7 +153,7 @@
     "options": [
       {
         "label": "Atacar (d20 + 5)",
-        "next": "combat",
+        "next": "ambush_intro",
         "kind": "combat",
         "playerAttackMod": 5
       },
@@ -173,11 +173,11 @@
     "narrate": true,
     "resolve": {
       "success": {
-        "next": "combat",
+        "next": "ambush_intro",
         "text": "Dudan. Ganás un turno gratis."
       },
       "fail": {
-        "next": "combat",
+        "next": "ambush_intro",
         "text": "Se ríen. “Dale, probá suerte.”"
       }
     }
@@ -188,11 +188,11 @@
     "narrate": true,
     "resolve": {
       "success": {
-        "next": "combat",
+        "next": "ambush_intro",
         "text": "Se miran entre sí. Ganás un segundo para posicionarte."
       },
       "fail": {
-        "next": "combat",
+        "next": "ambush_intro",
         "text": "No te creen y atacan."
       }
     }
@@ -219,60 +219,15 @@
     "options": [
       {
         "label": "Crear personaje",
+        "next": "go_creator",
         "kind": "link",
         "href": "/creador"
       },
       {
         "label": "Ver campañas",
+        "next": "go_campaigns",
         "kind": "link",
         "href": "/campanias"
-      }
-    ]
-  },
-  "combat": {
-    "title": "Combate rápido",
-    "text": "Los rufianes te rodean. Elegí tu acción: atacar, buscar ventaja o intentar asustarlos. Cada ronda: atacás y luego atacan ellos.",
-    "narrate": true,
-    "options": [
-      {
-        "label": "⚔️ Atacar (d20 + 5)",
-        "next": "combat",
-        "kind": "combat",
-        "playerAttackMod": 5
-      },
-      {
-        "label": "🎯 Atacar con ventaja (si lograste posicionarte)",
-        "next": "combat",
-        "kind": "combat",
-        "playerAttackMod": 5,
-        "advantage": true
-      },
-      {
-        "label": "😈 Intimidar para que duden (Tirada DC 13)",
-        "next": "check_intimidation",
-        "kind": "check",
-        "dc": 13,
-        "ability": "CHA",
-        "skill": "Intimidación"
-      },
-      {
-        "label": "🏃 Retirarte y huir con el mapa (final alternativo)",
-        "next": "flee_end"
-      }
-    ]
-  },
-  "flee_end": {
-    "title": "Final alternativo",
-    "text": "Escapás con lo que pudiste rescatar. Sobreviviste… pero el misterio queda abierto. ¿Volverás por la verdad?",
-    "narrate": true,
-    "options": [
-      {
-        "label": "Ver resumen",
-        "next": "summary"
-      },
-      {
-        "label": "Reiniciar demo",
-        "next": "start"
       }
     ]
   }
