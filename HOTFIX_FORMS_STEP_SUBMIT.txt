@@ -1,0 +1,3 @@
+Hotfix: evita auto-envio al pasar al ultimo paso.
+- Next button now prevents default/propagation and has a different key.
+- Form blocks Enter key submit when step < 3.
