@@ -1,54 +1,62 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
 import { Badge, Button, Card } from "@/components/ui";
-import RpgSignupForm from "@/components/forms/rpg-signup-form";
-import { CAMPAIGNS, CAMPAIGN_FORM_EMBED_URL, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
+import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
+import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Inscripción" };
+export const metadata = { title: "Campaña" };
 
-export default async function CampaniaSlugPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const campaign = CAMPAIGNS.find((c) => c.slug === slug);
-  if (!campaign) return notFound();
+type Props = { params: { slug: string } };
+
+export default function CampaignDetail({ params }: Props) {
+  const campaign = CAMPAIGNS.find((c) => c.slug === params.slug);
+
+  if (!campaign) {
+    return (
+      <div className="space-y-4">
+        <Card className="p-6">
+          <h1 className="text-xl font-extrabold text-primary">No encontrada</h1>
+          <p className="mt-2 text-sm text-text/80">Esa campaña no existe (todavía).</p>
+          <div className="mt-4">
+            <Button as="link" href="/campanias">Volver a campañas</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge>{campaign.genre}</Badge>
-        <span className="text-xs text-text/70">{campaign.system}</span>
-      </div>
+      <Card className="p-6 space-y-3">
+        <Badge>🧭 Campaña</Badge>
+        <h1 className="text-2xl font-extrabold text-primary">{campaign.title}</h1>
+        <p className="text-text/80">{campaign.description}</p>
+        <p className="text-sm text-yellow-200/80">{CAMPAIGN_EXAMPLES_NOTICE}</p>
 
-      <h1 className="text-balance text-4xl font-extrabold md:text-5xl">{campaign.title}</h1>
-      <p className="max-w-3xl text-text/80">{campaign.description}</p>
-      <p className="text-sm text-yellow-200/80">{CAMPAIGN_EXAMPLES_NOTICE}</p>
+        <div className="flex flex-wrap gap-2 text-xs text-text/70">
+          <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Estilo: {campaign.style}</span>
+          <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Nivel: {campaign.levelRange}</span>
+          <span
+            className={`rounded-full border border-border/60 px-3 py-1 ${
+              campaign.is_open ? "bg-emerald-500/20 text-emerald-200" : "bg-red-500/20 text-red-200"
+            }`}
+          >
+            {campaign.is_open ? "Abierta" : "Cerrada"}
+          </span>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="space-y-2">
-          <div className="text-sm font-semibold text-text/90">Formato</div>
-          <ul className="space-y-1 text-sm text-text/80">
-            <li><b>Duración:</b> {campaign.duration}</li>
-            <li><b>Dificultad:</b> {campaign.difficulty}</li>
-            <li><b>Plazas:</b> {campaign.seats}</li>
-            <li><b>Tono:</b> {campaign.tone}</li>
-          </ul>
-        </Card>
+        <div className="flex flex-wrap gap-2">
+          <Button as="link" href="/videos">Ver videos</Button>
+          <Button as="link" href="/simulador" variant="ghost">Probar simulador</Button>
+          <Button as="link" href="/campanias" variant="ghost">Volver</Button>
+        </div>
+      </Card>
 
-        <Card className="space-y-2">
-          <div className="text-sm font-semibold text-text/90">Ganchos</div>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-text/80">
-            {campaign.hooks.map((h) => (
-              <li key={h}>{h}</li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <RpgSignupForm defaultCampaignSlug={campaign.slug} />
-
-<Button as="link" href="/campanias" variant="ghost" className="w-full sm:w-auto">
-        ← Volver a Campañas
-      </Button>
+      <Card className="p-6 space-y-3">
+        <h2 className="text-lg font-extrabold text-primary">Anotarme a esta campaña</h2>
+        <p className="text-sm text-text/80">
+          Formulario propio del sitio (envía a Google Forms). 100% gratis y sin DB.
+        </p>
+        <RpgSignupForm compact />
+      </Card>
     </div>
   );
 }

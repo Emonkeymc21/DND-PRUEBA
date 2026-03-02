@@ -87,31 +87,26 @@ export default function SimulatorClient() {
     if (s?.title) setLog((l) => [...l, `➡️ ${s.title}`]);
   }
 
-  function resolveCheck(nextId: string, dc: number, label: string) {
+  function resolveCheckTo(checkSceneId: string | null, dc: number, label: string) {
     const roll = rollD20();
     const mod = 2; // demo: modificador fijo
     const total = roll + mod;
     const ok = total >= dc;
 
-    setSceneId(nextId);
+    setLog((l) => [...l, `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`]);
 
-    setLog((l) => [
-      ...l,
-      `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`
-    ]);
+    const target = checkSceneId && scenes[checkSceneId] ? scenes[checkSceneId] : scene;
 
-    const target = scenes[nextId];
+    if (checkSceneId && scenes[checkSceneId]) setSceneId(checkSceneId);
+
     const r = target?.resolve;
-
-    window.setTimeout(() => {
-      if (!r) {
-        go("start");
-        setLog((l) => [...l, "⚠️ Faltó la resolución de esta tirada. Reinicié la demo para evitar un bloqueo."]);
-        return;
-      }
-      go(ok ? r.success.next : r.fail.next);
-      setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
-    }, 450);
+    if (!r) {
+      setLog((l) => [...l, "⚠️ Falta resolución para esta tirada. Continúo para evitar bloqueo."]);
+      go("combat");
+      return;
+    }
+    go(ok ? r.success.next : r.fail.next);
+    setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
   }
 
   function doCombat(playerAttackMod: number, advantage?: boolean) {
@@ -161,15 +156,35 @@ export default function SimulatorClient() {
     setHp(newHp);
   }
 
-  function onOption(opt: SceneOption) {
-    if ("kind" in opt && opt.kind === "check") return resolveCheck(opt.next, opt.dc, `${opt.skill} (${opt.ability})`);
-    if ("kind" in opt && opt.kind === "combat") return doCombat(opt.playerAttackMod, opt.advantage);
-    if ("kind" in opt && opt.kind === "link") {
-      window.location.href = opt.href;
+  function onOption(opt: any) {
+  try {
+    const next = opt?.next ?? opt?.goto;
+
+    if (opt?.kind === "check") {
+      return resolveCheckTo(next ? String(next) : null, Number(opt.dc ?? 12), `${opt.skill ?? "Chequeo"} (${opt.ability ?? ""})`.trim());
+    }
+
+    if (opt?.kind === "combat" || opt?.kind === "battle") {
+      return doCombat(Number(opt.playerAttackMod ?? 4), opt.advantage);
+    }
+
+    if (opt?.kind === "link") {
+      window.location.href = String(opt.href ?? "/");
       return;
     }
-    go(opt.next);
+
+    if (next) return go(String(next));
+
+    setLog((l) => [...l, "⚠️ Opción sin destino. Reinicio para evitar bloqueo."]);
+    go("start");
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[Simulator] onOption", e);
+    setLog((l) => [...l, "⚠️ Error al procesar la opción. Reinicio para evitar bloqueo."]);
+    go("start");
   }
+}
+
 
   return (
     <div className="space-y-4">

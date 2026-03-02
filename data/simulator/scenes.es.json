@@ -32,7 +32,7 @@
   },
   "check_perception": {
     "title": "Tirada: Percepción",
-    "text": "Te concentrás. ¿Qué detalles ves en la escena? (Tirás el d20 y vemos qué pasa…)",
+    "text": "Te concentrás. ¿Qué detalles ves en la escena?",
     "narrate": true,
     "resolve": {
       "success": {
@@ -47,7 +47,7 @@
   },
   "check_persuasion": {
     "title": "Tirada: Persuasión",
-    "text": "Intentás ganarte la confianza del tabernero. (Tirás el d20 y vemos qué pasa…)",
+    "text": "Intentás ganarte la confianza del tabernero.",
     "narrate": true,
     "resolve": {
       "success": {
@@ -62,7 +62,7 @@
   },
   "check_survival": {
     "title": "Tirada: Supervivencia",
-    "text": "Mirás el barro y los rastros. (Tirás el d20 y vemos qué pasa…)",
+    "text": "Mirás el barro y los rastros.",
     "narrate": true,
     "resolve": {
       "success": {
@@ -111,7 +111,7 @@
   },
   "check_investigation": {
     "title": "Tirada: Investigación",
-    "text": "Buscás patrones, rutas de escape y señales. (Tirás el d20 y vemos qué pasa…)",
+    "text": "Buscás patrones, rutas de escape y señales.",
     "narrate": true,
     "resolve": {
       "success": {
@@ -169,7 +169,7 @@
   },
   "check_intimidation": {
     "title": "Tirada: Intimidación",
-    "text": "Los mirás fijo. “No tienen idea con quién se metieron.” (Tirás el d20 y vemos qué pasa…)",
+    "text": "Los mirás fijo. “No tienen idea con quién se metieron.”",
     "narrate": true,
     "resolve": {
       "success": {
@@ -184,7 +184,7 @@
   },
   "check_deception": {
     "title": "Tirada: Engaño",
-    "text": "Intentás confundirlos con una mentira rápida. (Tirás el d20 y vemos qué pasa…)",
+    "text": "Intentás confundirlos con una mentira rápida.",
     "narrate": true,
     "resolve": {
       "success": {
