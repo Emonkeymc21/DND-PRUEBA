@@ -246,11 +246,11 @@ React.useEffect(() => {
           </div>
           <div className="mt-2 grid gap-2">
             {THEMES.map((t) => (
-              <label key={t.label} className="flex gap-2 text-sm">
-                <input type="checkbox" name={F.theme} value={t.value} />
-                <span>{t.label}</span>
-              </label>
-            ))}
+  <label key={t} className="flex gap-2 text-sm">
+    <input type="checkbox" name={F.theme} value={t} />
+    <span>{t}</span>
+  </label>
+))}
           </div>
         </div>
 
