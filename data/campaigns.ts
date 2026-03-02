@@ -1,6 +1,8 @@
 export type CampaignGenre = "Fantasía" | "Terror" | "Sci‑Fi" | "Anime" | "Misterio" | "Épica";
 
 export type Campaign = {
+  id: string;
+  is_open: boolean;
   slug: string;
   title: string;
   genre: CampaignGenre;
@@ -17,7 +19,8 @@ export type Campaign = {
 export const CAMPAIGNS: Campaign[] = [
   {
     slug: "el-llamado",
-    title: "El Llamado (One‑Shot de Inicio)",
+    id: "el-llamado",
+    is_open: true,    title: "El Llamado (One‑Shot de Inicio)",
     genre: "Fantasía",
     system: "D&D 5e (SRD)",
     tone: "Aventura, humor, épica",
@@ -35,7 +38,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     slug: "umbral-rojo",
-    title: "El Umbral Rojo",
+    id: "umbral-rojo",
+    is_open: true,    title: "El Umbral Rojo",
     genre: "Terror",
     system: "D&D 5e (SRD)",
     tone: "Horror, tensión, supervivencia",
@@ -53,7 +57,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     slug: "neon-y-acero",
-    title: "Neón y Acero",
+    id: "neon-y-acero",
+    is_open: true,    title: "Neón y Acero",
     genre: "Sci‑Fi",
     system: "D&D 5e (adaptación ligera)",
     tone: "Cyberpunk, acción, intriga",
@@ -71,7 +76,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     slug: "sellos-rotos",
-    title: "Sellos Rotos",
+    id: "sellos-rotos",
+    is_open: true,    title: "Sellos Rotos",
     genre: "Anime",
     system: "D&D 5e (shonen vibes)",
     tone: "Shonen, poder creciente, drama",
@@ -89,7 +95,8 @@ export const CAMPAIGNS: Campaign[] = [
   },
   {
     slug: "la-corona-de-ceniza",
-    title: "La Corona de Ceniza",
+    id: "la-corona-de-ceniza",
+    is_open: true,    title: "La Corona de Ceniza",
     genre: "Épica",
     system: "D&D 5e (SRD)",
     tone: "Alta fantasía, política, guerra",
