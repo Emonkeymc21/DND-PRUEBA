@@ -1,485 +1,245 @@
 "use client";
 
-import * as React from "react";
-import scenesRaw from "@/data/simulator/scenes.es.json";
-import { Button, Card } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { Card, Button } from "@/components/ui";
 
-
-type StoryStyle = "fantasy" | "scifi" | "anime" | "harry" | "terror";
-
-function styleLabel(style: StoryStyle) {
-  switch (style) {
-    case "fantasy": return "🗡️ Fantasía";
-    case "scifi": return "🚀 Sci‑Fi";
-    case "anime": return "⚡ Anime / Shonen";
-    case "harry": return "🪄 Mundo mágico";
-    case "terror": return "🕯️ Terror";
-  }
-}
-
-function inferStyleFromSceneId(id: string): StoryStyle | null {
-  if (id === "start_fantasy") return "fantasy";
-  if (id === "start_scifi") return "scifi";
-  if (id === "start_anime") return "anime";
-  if (id === "start_harry") return "harry";
-  if (id === "start_terror") return "terror";
-  return null;
-}
-
-function applySkin(text: string, style: StoryStyle | null): string {
-  if (!style) return text;
-  // Sólo agregamos ambientación, sin tocar mecánicas.
-  const prefix = (() => {
-    switch (style) {
-      case "fantasy":
-        return "En un mundo de acero y hechicería, ";
-      case "scifi":
-        return "En el vacío frío del futuro, ";
-      case "anime":
-        return "Con la energía al máximo, ";
-      case "harry":
-        return "Entre pasillos encantados, ";
-      case "terror":
-        return "Con la oscuridad respirándote en la nuca, ";
-    }
-  })();
-  return prefix + text;
-}
-type RawSceneOption = {
+type Choice = {
   label: string;
-  kind?: "check" | "combat" | "link";
-  // some older JSONs used href instead of next
-  next?: string;
-  href?: string;
-  // check
-  dc?: number;
-  ability?: string;
-  skill?: string;
-  // combat
-  playerAttackMod?: number;
-  advantage?: boolean;
+  next: string;
 };
-
-type RawScene = {
-  title: string;
-  text: string;
-  narrate?: boolean;
-  summary?: string; // allowed in JSON
-  options?: RawSceneOption[];
-  resolve?: {
-    success: { next: string; text: string };
-    fail: { next: string; text: string };
-  };
-};
-
-type SceneOption =
-  | { label: string; next: string }
-  | { label: string; next: string; kind: "check"; dc: number; ability: string; skill: string }
-  | { label: string; next: string; kind: "combat"; playerAttackMod: number; advantage?: boolean }
-  | { label: string; kind: "link"; href: string; next?: string };
 
 type Scene = {
-  title: string;
+  id: string;
   text: string;
-  narrate?: boolean;
-  summary?: string;
-  options?: SceneOption[];
-  resolve?: {
-    success: { next: string; text: string };
-    fail: { next: string; text: string };
-  };
+  choices: Choice[];
+  end?: boolean;
 };
 
-function normalizeScenes(raw: unknown): Record<string, Scene> {
-  const obj = (raw ?? {}) as Record<string, RawScene>;
-  const out: Record<string, Scene> = {};
+type StoryMap = Record<string, Scene>;
 
-  for (const [id, scene] of Object.entries(obj)) {
-    const options: SceneOption[] | undefined = scene.options?.map((o) => {
-      const kind = o.kind;
-      const next = o.next ?? (o.href && !/^https?:\/\//.test(o.href) && !o.href.startsWith("/") ? o.href : undefined);
+const fantasy: StoryMap = {
+  intro: {
+    id: "intro",
+    text: "Un dragón ha despertado en las montañas. El reino tiembla.",
+    choices: [
+      { label: "Ir al castillo", next: "castle" },
+      { label: "Buscar al mago antiguo", next: "wizard" },
+    ],
+  },
+  castle: {
+    id: "castle",
+    text: "El rey te pide ayuda. Promete gloria eterna.",
+    choices: [
+      { label: "Aceptar la misión", next: "dragon" },
+      { label: "Rechazar y huir", next: "exile" },
+    ],
+  },
+  wizard: {
+    id: "wizard",
+    text: "El mago te ofrece poder oscuro.",
+    choices: [
+      { label: "Aceptar poder", next: "dark_end" },
+      { label: "Rechazar", next: "dragon" },
+    ],
+  },
+  dragon: {
+    id: "dragon",
+    text: "El dragón ruge frente a ti.",
+    choices: [{ label: "Combatir", next: "hero_end" }],
+  },
+  hero_end: {
+    id: "hero_end",
+    text: "Derrotaste al dragón. Eres leyenda.",
+    choices: [],
+    end: true,
+  },
+  dark_end: {
+    id: "dark_end",
+    text: "El poder te consume. Te conviertes en señor oscuro.",
+    choices: [],
+    end: true,
+  },
+  exile: {
+    id: "exile",
+    text: "Huyes. El reino cae sin ti.",
+    choices: [],
+    end: true,
+  },
+};
 
-      if (kind === "check") {
-        return {
-          label: o.label,
-          kind: "check",
-          next: next ?? "fin",
-          dc: Number(o.dc ?? 12),
-          ability: String(o.ability ?? "DEX"),
-          skill: String(o.skill ?? "Engaño"),
-        };
-      }
+const scifi: StoryMap = {
+  intro: {
+    id: "intro",
+    text: "La nave interestelar recibe una señal desconocida.",
+    choices: [
+      { label: "Investigar señal", next: "signal" },
+      { label: "Ignorar", next: "escape" },
+    ],
+  },
+  signal: {
+    id: "signal",
+    text: "Una IA despierta.",
+    choices: [{ label: "Desconectarla", next: "ai_end" }],
+  },
+  escape: {
+    id: "escape",
+    text: "Saltás al hiperespacio. Algo te sigue.",
+    choices: [{ label: "Enfrentar amenaza", next: "space_end" }],
+  },
+  ai_end: {
+    id: "ai_end",
+    text: "La IA toma control del universo digital.",
+    choices: [],
+    end: true,
+  },
+  space_end: {
+    id: "space_end",
+    text: "Te pierdes en el vacío eterno.",
+    choices: [],
+    end: true,
+  },
+};
 
-      if (kind === "combat") {
-        return {
-          label: o.label,
-          kind: "combat",
-          next: next ?? "fin",
-          playerAttackMod: Number(o.playerAttackMod ?? 4),
-          advantage: o.advantage,
-        };
-      }
+const anime: StoryMap = {
+  intro: {
+    id: "intro",
+    text: "El torneo comienza. Tu rival sonríe.",
+    choices: [
+      { label: "Atacar primero", next: "fight" },
+      { label: "Esperar y analizar", next: "focus" },
+    ],
+  },
+  fight: {
+    id: "fight",
+    text: "Desatas tu técnica secreta.",
+    choices: [],
+    end: true,
+  },
+  focus: {
+    id: "focus",
+    text: "Tu aura se expande. Despiertas poder oculto.",
+    choices: [],
+    end: true,
+  },
+};
 
-      if (kind === "link") {
-        // link can either be external/internal URL, or legacy scene id in href
-        return {
-          label: o.label,
-          kind: "link",
-          href: String(o.href ?? "/"),
-          next,
-        };
-      }
+const magic: StoryMap = {
+  intro: {
+    id: "intro",
+    text: "El sombrero seleccionador susurra tu destino.",
+    choices: [
+      { label: "Aceptar casa", next: "school" },
+      { label: "Resistir", next: "dark" },
+    ],
+  },
+  school: {
+    id: "school",
+    text: "Aprendes un hechizo prohibido.",
+    choices: [],
+    end: true,
+  },
+  dark: {
+    id: "dark",
+    text: "Una reliquia oscura te elige.",
+    choices: [],
+    end: true,
+  },
+};
 
-      // default: plain next transition
-      return { label: o.label, next: next ?? "fin" };
-    });
+const horror: StoryMap = {
+  intro: {
+    id: "intro",
+    text: "La casa cruje en la noche.",
+    choices: [
+      { label: "Explorar sótano", next: "basement" },
+      { label: "Salir corriendo", next: "escape" },
+    ],
+  },
+  basement: {
+    id: "basement",
+    text: "Algo respira detrás tuyo.",
+    choices: [],
+    end: true,
+  },
+  escape: {
+    id: "escape",
+    text: "Sobrevives… pero algo te sigue.",
+    choices: [],
+    end: true,
+  },
+};
 
-    out[id] = {
-      title: String(scene.title ?? id),
-      text: String(scene.text ?? ""),
-      narrate: scene.narrate,
-      summary: scene.summary,
-      options,
-      resolve: scene.resolve,
-    };
-  }
-
-  return out;
-}
-
-const scenes = normalizeScenes(scenesRaw);
-
-function rollD20() {
-  return Math.floor(Math.random() * 20) + 1;
-}
-
-function pickEpicSpanishVoice(voices: SpeechSynthesisVoice[]) {
-  // Elegimos una voz en español. Si existe una voz “natural/premium” o una voz masculina, la priorizamos.
-  const es = voices.filter(v => (v.lang || "").toLowerCase().startsWith("es"));
-  if (!es.length) return voices[0];
-
-  const score = (v: SpeechSynthesisVoice) => {
-    const name = (v.name || "").toLowerCase();
-    let s = 0;
-    if (/google|natural|premium|neural/.test(name)) s += 6;
-    if (/microsoft|azure/.test(name)) s += 4;
-    // heurística de “masculina” (depende del navegador / proveedor)
-    if (/male|masc|hombre|varon|man/.test(name)) s += 3;
-    // preferimos es-ES / es-AR / es-MX
-    const lang = (v.lang || "").toLowerCase();
-    if (lang.startsWith("es-es")) s += 2;
-    if (lang.startsWith("es-ar")) s += 2;
-    if (lang.startsWith("es-mx")) s += 1;
-    return s;
-  };
-
-  return [...es].sort((a,b) => score(b)-score(a))[0] || es[0];
-}
-
-function speak(text: string, rate: number, pitch: number, voice?: SpeechSynthesisVoice) {
-  if (typeof window === "undefined") return;
-  if (!("speechSynthesis" in window)) return;
-
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = (voice?.lang || "es-ES");
-  u.rate = rate;
-  // Un pitch más bajo suele sentirse “más profundo”
-  u.pitch = pitch;
-  if (voice) u.voice = voice;
-
-  window.speechSynthesis.speak(u);
-}
+const stories = { fantasy, scifi, anime, magic, horror };
 
 export default function SimulatorClient() {
+  const [theme, setTheme] = useState<keyof typeof stories | null>(null);
+  const [sceneId, setSceneId] = useState("intro");
+  const [pitch, setPitch] = useState(0.65);
 
-  const [sceneId, setSceneId] = React.useState("choose");
-  const [storyStyle, setStoryStyle] = React.useState<StoryStyle | null>(null);
-  const [log, setLog] = React.useState<string[]>([]);
-  const [autoNarrate, setAutoNarrate] = React.useState(true);
-  const [rate, setRate] = React.useState(0.92);
-  const [pitch, setPitch] = React.useState(0.68);
-  const [voice, setVoice] = React.useState<SpeechSynthesisVoice | undefined>(undefined);
-  const [hp, setHp] = React.useState(12);
-  const [enemyHp, setEnemyHp] = React.useState(16);
+  const story = theme ? stories[theme] : null;
+  const scene = story ? story[sceneId] ?? null : null;
 
-  const scene = sceneId === "choose" ? null : (scenes[sceneId] ?? scenes["start"]);
+  useEffect(() => {
+    if (!scene) return;
+    const utter = new SpeechSynthesisUtterance(scene.text);
+    utter.lang = "es-ES";
+    utter.pitch = pitch;
+    utter.rate = 0.9;
+    speechSynthesis.speak(utter);
+  }, [scene, pitch]);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("speechSynthesis" in window)) return;
-
-    const load = () => {
-      const vs = window.speechSynthesis.getVoices();
-      setVoice(pickEpicSpanishVoice(vs));
-    };
-    load();
-    window.speechSynthesis.onvoiceschanged = load;
-    return () => { window.speechSynthesis.onvoiceschanged = null; };
-  }, []);
-
-  React.useEffect(() => {
-    if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, pitch, voice);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneId, autoNarrate, rate, pitch, voice]);
-
-  function resetCombat() {
-    setHp(12);
-    setEnemyHp(16);
+  if (!theme) {
+    return (
+      <Card className="p-6 space-y-4">
+        <h2 className="text-xl font-bold">Elegí tu aventura</h2>
+        {Object.keys(stories).map((t) => (
+          <Button key={t} onClick={() => setTheme(t as any)}>
+            {t.toUpperCase()}
+          </Button>
+        ))}
+      </Card>
+    );
   }
 
-  function go(next: string) {
-    setSceneId(next);
-    const inferred = inferStyleFromSceneId(next);
-    if (inferred) setStoryStyle(inferred);
-    const s = scenes[next];
-    if (next === "choose") {
-      setLog([]);
-      resetCombat();
-    }
-    if (s?.title) setLog((l) => [...l, `➡️ ${s.title}`]);
+  if (!scene) {
+    return (
+      <Card className="p-6">
+        <p>Escena no encontrada. Reiniciando…</p>
+        <Button onClick={() => setSceneId("intro")}>
+          Volver al inicio
+        </Button>
+      </Card>
+    );
   }
-
-  function resolveCheckTo(checkSceneId: string | null, dc: number, label: string) {
-    const roll = rollD20();
-    const mod = 2; // demo: modificador fijo
-    const total = roll + mod;
-    const ok = total >= dc;
-
-    setLog((l) => [...l, `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`]);
-
-    const target = checkSceneId && scenes[checkSceneId] ? scenes[checkSceneId] : scene;
-
-    if (checkSceneId && scenes[checkSceneId]) setSceneId(checkSceneId);
-
-    const r = target?.resolve;
-    if (!r) {
-      setLog((l) => [...l, "⚠️ Falta resolución para esta tirada. Continúo para evitar bloqueo."]);
-      go("combat");
-      return;
-    }
-    go(ok ? r.success.next : r.fail.next);
-    setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
-  }
-
-  function doCombat(playerAttackMod: number, advantage?: boolean, nextOnWin?: string) {
-    // Simplificado:
-    // - vos atacás: d20 + mod vs AC 12; si pega: 1d8+3
-    // - enemigo ataca: d20 + 3 vs tu AC 12; si pega: 1d6+1
-    const playerRollA = rollD20();
-    const playerRollB = rollD20();
-    const playerRoll = advantage ? Math.max(playerRollA, playerRollB) : playerRollA;
-    const playerHit = playerRoll + playerAttackMod >= 12;
-
-    let newEnemy = enemyHp;
-    let newHp = hp;
-
-    if (playerHit) {
-      const dmg = (Math.floor(Math.random() * 8) + 1) + 3;
-      newEnemy -= dmg;
-      setLog((l) => [...l, `⚔️ Tu ataque: ${advantage ? `(${playerRollA}, ${playerRollB}) ⇒ ` : ""}${playerRoll}+${playerAttackMod} → PEGÁS. Daño ${dmg}.`]);
-    } else {
-      setLog((l) => [...l, `⚔️ Tu ataque: ${advantage ? `(${playerRollA}, ${playerRollB}) ⇒ ` : ""}${playerRoll}+${playerAttackMod} → FALLÁS.`]);
-    }
-
-    if (newEnemy <= 0) {
-      setEnemyHp(0);
-      go(nextOnWin ?? "combat_end");
-      return;
-    }
-
-    const eRoll = rollD20();
-    const eHit = eRoll + 3 >= 12;
-    if (eHit) {
-      const dmg = (Math.floor(Math.random() * 6) + 1) + 1;
-      newHp -= dmg;
-      setLog((l) => [...l, `🩸 Enemigo: ${eRoll}+3 → te pega. Daño ${dmg}.`]);
-    } else {
-      setLog((l) => [...l, `🛡️ Enemigo: ${eRoll}+3 → falla.`]);
-    }
-
-    if (newHp <= 0) {
-      setHp(0);
-      setLog((l) => [...l, "💀 Caíste. Reiniciá y probá otra ruta."]);
-      go("choose");
-      return;
-    }
-
-    setEnemyHp(newEnemy);
-    setHp(newHp);
-  }
-
-  function onOption(opt: any) {
-  try {
-    const next = opt?.next ?? opt?.goto;
-
-    if (opt?.kind === "check") {
-      return resolveCheckTo(next ? String(next) : null, Number(opt.dc ?? 12), `${opt.skill ?? "Chequeo"} (${opt.ability ?? ""})`.trim());
-    }
-
-    if (opt?.kind === "combat" || opt?.kind === "battle") {
-      return doCombat(Number(opt.playerAttackMod ?? 4), opt.advantage);
-    }
-
-    if (opt?.kind === "link") {
-      window.location.href = String(opt.href ?? "/");
-      return;
-    }
-
-    if (next) return go(String(next));
-
-    setLog((l) => [...l, "⚠️ Opción sin destino. Reinicio para evitar bloqueo."]);
-    go("choose");
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error("[Simulator] onOption", e);
-    setLog((l) => [...l, "⚠️ Error al procesar la opción. Reinicio para evitar bloqueo."]);
-    go("choose");
-  }
-}
-
-  function startWithStyle(style: StoryStyle) {
-    setStoryStyle(style);
-    setLog([]);
-    resetCombat();
-    // Arranque con intro dedicada por temática
-    const first = style === "fantasy" ? "start_fantasy"
-      : style === "scifi" ? "start_scifi"
-      : style === "anime" ? "start_anime"
-      : style === "harry" ? "start_harry"
-      : "start_terror";
-    setSceneId(first);
-  }
-
 
   return (
-    <div className="space-y-4">
-      {sceneId === "choose" && (
-        <Card className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-bold text-primary">Elegí tu aventura</h2>
-              <p className="text-sm text-text/80">Seleccioná la temática antes de comenzar. La narración automática empieza después.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={autoNarrate} onChange={(e) => setAutoNarrate(e.target.checked)} />
-                Auto narrar
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                Velocidad
-                <input type="range" min={0.8} max={1.25} step={0.05} value={rate} onChange={(e) => setRate(Number(e.target.value))} />
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                Voz (grave)
-                <input type="range" min={0.6} max={1.05} step={0.05} value={pitch} onChange={(e) => setPitch(Number(e.target.value))} />
-              </label>
-            </div>
-          </div>
+    <Card className="p-6 space-y-4">
+      <p className="text-lg">{scene.text}</p>
 
-          <div className="grid gap-2 md:grid-cols-2">
-            <Button type="button" onClick={() => startWithStyle("fantasy")} className="justify-start">🗡️ Fantasía (clásica)</Button>
-            <Button type="button" onClick={() => startWithStyle("scifi")} className="justify-start">🚀 Sci‑Fi (futuro)</Button>
-            <Button type="button" onClick={() => startWithStyle("anime")} className="justify-start">⚡ Anime / Shonen</Button>
-            <Button type="button" onClick={() => startWithStyle("harry")} className="justify-start">🪄 Mundo mágico</Button>
-            <Button type="button" onClick={() => startWithStyle("terror")} className="justify-start">🕯️ Terror</Button>
-          </div>
-        </Card>
+      {!scene.end &&
+        scene.choices.map((choice) => (
+          <Button key={choice.next} onClick={() => setSceneId(choice.next)}>
+            {choice.label}
+          </Button>
+        ))}
+
+      {scene.end && (
+        <Button onClick={() => setSceneId("intro")}>
+          Volver a empezar
+        </Button>
       )}
 
-      {sceneId !== "choose" && (
-        <div className="space-y-4">
-          <Card className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-primary">{scene.title}</h2>
-            <p className="text-sm text-text/80">Demo interactiva (reglas + plantillas). Narración gratis con SpeechSynthesis.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={autoNarrate} onChange={(e) => setAutoNarrate(e.target.checked)} />
-              Auto narrar
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              Velocidad
-              <input
-                type="range"
-                min={0.8}
-                max={1.25}
-                step={0.05}
-                value={rate}
-                onChange={(e) => setRate(Number(e.target.value))}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              Voz (grave)
-              <input
-                type="range"
-                min={0.6}
-                max={1.05}
-                step={0.05}
-                value={pitch}
-                onChange={(e) => setPitch(Number(e.target.value))}
-              />
-            </label>
-          </div>
-        </div>
-
-        <p className="rounded-xl border border-border/60 bg-black/30 p-4 text-lg leading-relaxed">{applySkin(scene.text, storyStyle)}</p>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => { if (!scene) return; speak(`${scene.title}. ${scene.text}`, rate, pitch, voice); }}
-            type="button"
-            variant="ghost"
-          >
-            🔊 Escuchar narración
-          </Button>
-          <Button
-            onClick={() => { setLog([]); setStoryStyle(null); setSceneId("choose"); resetCombat(); }}
-            type="button"
-            variant="ghost"
-          >
-            ♻️ Reiniciar
-          </Button>
-        </div>
-
-        {(sceneId === "combat" || sceneId.startsWith("ambush")) && (
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-border/60 bg-black/25 p-3">
-              <div className="text-sm text-text/80">Tu HP</div>
-              <div className="text-2xl font-extrabold text-primary">{hp}</div>
-            </div>
-            <div className="rounded-xl border border-border/60 bg-black/25 p-3">
-              <div className="text-sm text-text/80">HP Enemigos</div>
-              <div className="text-2xl font-extrabold text-primary">{enemyHp}</div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid gap-2 md:grid-cols-2">
-          {(scene.options ?? []).map((opt, i) => (
-            <Button key={i} onClick={() => onOption(opt)} type="button" className="justify-start">
-              {opt.label}
-            </Button>
-          ))}
-        </div>
-          </Card>
-
-          <Card>
-        <h3 className="font-bold text-primary">Registro de mesa</h3>
-        <div className="mt-3 max-h-64 space-y-1 overflow-auto rounded-xl border border-border/60 bg-black/25 p-3 text-sm">
-          {log.length === 0 ? (
-            <div className="text-text/60">Tu historia aparece acá…</div>
-          ) : (
-            log.map((l, idx) => <div key={idx}>{l}</div>)
-          )}
-        </div>
-          </Card>
-        </div>
-      )}
-    </div>
+      <div className="pt-4">
+        <label className="block text-sm">Voz (grave)</label>
+        <input
+          type="range"
+          min="0.4"
+          max="1"
+          step="0.05"
+          value={pitch}
+          onChange={(e) => setPitch(Number(e.target.value))}
+        />
+      </div>
+    </Card>
   );
 }
