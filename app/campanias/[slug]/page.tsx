@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Button, Card } from "@/components/ui";
-import { CAMPAIGNS, CAMPAIGN_FORM_EMBED_URL } from "@/data/campaigns";
+import RpgSignupForm from "@/components/forms/rpg-signup-form";
+import { CAMPAIGNS, CAMPAIGN_FORM_EMBED_URL, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inscripción" };
@@ -20,6 +21,7 @@ export default async function CampaniaSlugPage({ params }: { params: Promise<{ s
 
       <h1 className="text-balance text-4xl font-extrabold md:text-5xl">{campaign.title}</h1>
       <p className="max-w-3xl text-text/80">{campaign.description}</p>
+      <p className="text-sm text-yellow-200/80">{CAMPAIGN_EXAMPLES_NOTICE}</p>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="space-y-2">
@@ -42,32 +44,9 @@ export default async function CampaniaSlugPage({ params }: { params: Promise<{ s
         </Card>
       </div>
 
-      <Card className="space-y-3">
-        <div className="text-lg font-bold text-primary">Hoja de inscripción</div>
-        <p className="text-sm text-text/80">
-          No usamos DB. La inscripción se hace por formulario (como en el Home original).
-        </p>
+      <RpgSignupForm defaultCampaignSlug={campaign.slug} />
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button as="link" href={campaign.formEmbedUrl.replace("embedded=true", "")} className="w-full sm:w-auto">
-            Abrir formulario en pestaña
-          </Button>
-          <Link className="text-sm text-text/80 hover:text-primary" href="/videos">
-            Ver videos sugeridos →
-          </Link>
-        </div>
-
-        <div className="mt-2 overflow-hidden rounded-xl border border-border/60">
-          <iframe
-            title="Formulario de inscripción"
-            src={campaign.formEmbedUrl || CAMPAIGN_FORM_EMBED_URL}
-            className="h-[78vh] w-full"
-            loading="lazy"
-          />
-        </div>
-      </Card>
-
-      <Button as="link" href="/campanias" variant="ghost" className="w-full sm:w-auto">
+<Button as="link" href="/campanias" variant="ghost" className="w-full sm:w-auto">
         ← Volver a Campañas
       </Button>
     </div>

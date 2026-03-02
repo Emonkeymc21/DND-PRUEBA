@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, Button, Card } from "@/components/ui";
-import { CAMPAIGNS } from "@/data/campaigns";
+import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Campañas" };
@@ -14,6 +14,7 @@ export default function CampaniasPage() {
           <p className="max-w-2xl text-text/80">
             Ejemplos listos para jugar: Fantasía, Terror, Sci‑Fi y Anime. Elegí una, mirá la propuesta y anotate.
           </p>
+          <p className="mt-2 text-sm text-yellow-200/80">{CAMPAIGN_EXAMPLES_NOTICE}</p>
         </div>
 
         <Button as="link" href="/videos" className="w-full sm:w-auto">

@@ -119,3 +119,5 @@ export const CAMPAIGN_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQ
 
 // Alias para compatibilidad con imports anteriores
 export const CAMPAIGN_EXAMPLES = CAMPAIGNS;
+
+export const CAMPAIGN_EXAMPLES_NOTICE = "⚠️ Estas campañas son EJEMPLOS de propuestas que podrían darse. Podés usarlas como inspiración o plantilla.";
