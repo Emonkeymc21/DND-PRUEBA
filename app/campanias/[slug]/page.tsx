@@ -2,13 +2,13 @@ import { Badge, Button, Card } from "@/components/ui";
 import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
-type CampaignSlugPageProps = { params: Promise<{ slug: string }> };
-
 export const metadata = { title: "Campaña" };
 
-type CampaignSlugPageProps = { params: { slug: string } };
+type Props = { params: { slug: string } };
 
-export default function CampaignDetail({ params }: CampaignSlugPageProps) {
+export default async function CampaignDetail({ 
+  // slug resolved above
+params }: Props) {
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
