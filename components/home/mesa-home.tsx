@@ -306,7 +306,7 @@ export default function MesaHome() {
         </p>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {indexVideos.map((v) => (
-            <Card key={v.youtubeId} className="space-y-3">
+            <Card key={v.id} className="space-y-3">
               <div className="text-sm font-semibold">{v.title}</div>
               <YoutubeFrame id={v.id} title={v.title} />
             </Card>
