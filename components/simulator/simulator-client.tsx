@@ -598,7 +598,7 @@ export default function SimulatorClient() {
 
               <div className="flex gap-2">
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   onClick={() => speak(`${scene.title}. ${scene.text}`)}
                   className="w-full"
                 >
