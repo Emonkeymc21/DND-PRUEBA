@@ -88,32 +88,31 @@ export default function SimulatorClient() {
   }
 
   function resolveCheck(nextId: string, dc: number, label: string) {
-  const roll = rollD20();
-  const mod = 2; // demo: modificador fijo
-  const total = roll + mod;
-  const ok = total >= dc;
+    const roll = rollD20();
+    const mod = 2; // demo: modificador fijo
+    const total = roll + mod;
+    const ok = total >= dc;
 
-  // Mostramos la escena de tirada (para que se entienda qué está pasando)
-  setSceneId(nextId);
+    setSceneId(nextId);
 
-  setLog((l) => [
-    ...l,
-    `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`
-  ]);
+    setLog((l) => [
+      ...l,
+      `🎲 ${label}: tiraste ${roll} + ${mod} = ${total} vs DC ${dc} → ${ok ? "Éxito" : "Fallo"}`
+    ]);
 
-  const target = scenes[nextId];
-  const r = target?.resolve;
-  if (!r) {
-    // fallback seguro: si no hay resolve, seguimos al next “normal”
-    return;
+    const target = scenes[nextId];
+    const r = target?.resolve;
+
+    window.setTimeout(() => {
+      if (!r) {
+        go("start");
+        setLog((l) => [...l, "⚠️ Faltó la resolución de esta tirada. Reinicié la demo para evitar un bloqueo."]);
+        return;
+      }
+      go(ok ? r.success.next : r.fail.next);
+      setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
+    }, 450);
   }
-
-  // Pequeño delay para que el usuario vea la escena de tirada
-  window.setTimeout(() => {
-    go(ok ? r.success.next : r.fail.next);
-    setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
-  }, 450);
-}
 
   function doCombat(playerAttackMod: number, advantage?: boolean) {
     // Simplificado:

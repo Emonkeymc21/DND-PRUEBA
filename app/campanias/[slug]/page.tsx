@@ -1,68 +1,63 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, Button } from "@/components/ui";
-import RegistrationForm from "@/components/campaigns/registration-form";
-import { db } from "@/lib/db";
+import { Badge, Button, Card } from "@/components/ui";
+import { CAMPAIGN_EXAMPLES } from "@/data/campaigns";
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Inscripción" };
+export const metadata = { title: "Detalle de campaña" };
 
-type Campaign = {
-  id: number;
-  slug: string;
-  title: string;
-  description: string;
-  is_open: boolean;
-};
-
-function normalize(row: any): Campaign | null {
-  if (!row) return null;
-  const c: Campaign = {
-    id: Number(row?.id),
-    slug: String(row?.slug ?? ""),
-    title: String(row?.title ?? ""),
-    description: String(row?.description ?? ""),
-    is_open: Boolean(row?.is_open),
-  };
-  if (!c.slug || !c.title) return null;
-  return c;
-}
-
-async function getCampaignBySlug(slug: string): Promise<Campaign | null> {
-  try {
-    const sql = db();
-    const rows = await sql`
-      select id, slug, title, description, is_open
-      from campaigns
-      where slug = ${slug}
-      limit 1
-    `;
-    return normalize(rows?.[0]);
-  } catch {
-    return null;
-  }
-}
-
-export default async function CampaignSignupPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const campaign = await getCampaignBySlug(slug);
-  if (!campaign) return notFound();
+export default function CampaignDetail({ params }: { params: { slug: string } }) {
+  const c = CAMPAIGN_EXAMPLES.find((x) => x.slug === params.slug);
+  if (!c) return notFound();
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-balance text-4xl font-extrabold md:text-5xl">{campaign.title}</h1>
-      <p className="max-w-3xl text-text/80">{campaign.description}</p>
+    <div className="space-y-8">
+      <div>
+        <Badge>{c.is_open ? "🟢 Abierta" : "⚫ Cerrada"}</Badge>
+        <h1 className="mt-3 text-balance text-4xl font-extrabold md:text-5xl">{c.title}</h1>
+        <p className="mt-2 max-w-3xl text-text/80">{c.description}</p>
+      </div>
 
-      <Card>
-        {!campaign.is_open ? (
-          <div className="text-text/80">Esta campaña está cerrada.</div>
-        ) : (
-          <RegistrationForm campaignId={campaign.id} />
-        )}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="space-y-2">
+          <div className="text-sm font-semibold text-primary">Géneros</div>
+          <div className="flex flex-wrap gap-2">
+            {c.genre.map((g) => (
+              <span key={g} className="rounded-full border border-border/60 bg-black/30 px-2 py-1 text-xs text-text/75">
+                {g}
+              </span>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="space-y-2">
+          <div className="text-sm font-semibold text-primary">Datos rápidos</div>
+          <div className="text-sm text-text/80">Nivel: {c.level}</div>
+          <div className="text-sm text-text/80">Duración: {c.duration}</div>
+          <div className="text-sm text-text/80">Sistema: {c.system}</div>
+        </Card>
+      </div>
+
+      <Card className="space-y-3">
+        <div className="text-sm font-semibold text-primary">Highlights</div>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-text/80">
+          {c.highlights.map((h) => (
+            <li key={h}>{h}</li>
+          ))}
+        </ul>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button as="link" href="/campanias#anotarme" className="w-full sm:w-auto">
+            Anotarme (form)
+          </Button>
+          <Button as="link" href="/campanias" variant="ghost" className="w-full sm:w-auto">
+            Volver
+          </Button>
+        </div>
       </Card>
 
-      <Button as="link" href="/campanias" variant="ghost" className="w-full sm:w-auto">
-        ← Volver
-      </Button>
+      <div className="text-sm text-text/70">
+        Tip: si querés volver a DB+admin más adelante, se puede reactivar (pero por ahora lo dejamos 100% gratis y estable para Netlify).
+      </div>
     </div>
   );
 }

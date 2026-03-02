@@ -7,6 +7,7 @@ import { SITE } from "@/lib/site";
 import { Preloader } from "@/components/effects/preloader";
 import { Particles } from "@/components/effects/particles";
 import { MagicCursor } from "@/components/effects/magic-cursor";
+import { MusicControl } from "@/components/music-control";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Particles />
         <Preloader />
         <MagicCursor />
+        <MusicControl />
         <ThemeProvider>
           <Header />
           <main className="mx-auto w-full max-w-6xl px-4 py-10 pb-28 md:pb-10">{children}</main>

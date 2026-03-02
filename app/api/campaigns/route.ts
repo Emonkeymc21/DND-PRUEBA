@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { CAMPAIGN_EXAMPLES } from "@/data/campaigns";
 
 export async function GET() {
-  try {
-    const sql = db();
-    const rows = await sql`
-      select id, slug, title, description, is_open
-      from campaigns
-      order by created_at desc
-    `;
-    return NextResponse.json(rows);
-  } catch (e: any) {
-    return NextResponse.json({ error: "DB no configurada o inaccesible", detail: String(e?.message ?? e) }, { status: 500 });
-  }
+  const rows = CAMPAIGN_EXAMPLES.map((c) => ({
+    id: c.id,
+    slug: c.slug,
+    title: c.title,
+    description: c.description,
+    is_open: c.is_open
+  }));
+  return NextResponse.json(rows);
 }

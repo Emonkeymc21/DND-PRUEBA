@@ -3,35 +3,60 @@ export type VideoCategory =
   | "Crear PJ"
   | "Ser DM"
   | "Combate"
-  | "Inspiración";
+  | "Inspiración"
+  | "Campañas";
 
 export type CuratedVideo = {
   title: string;
   youtubeId: string;
   category: VideoCategory;
   notes?: string;
+  campaignIdea?: string;
 };
 
 export const VIDEOS: CuratedVideo[] = [
+  // ---- Videos del INDEX original ----
   {
-    title: "Partida / ejemplo (referencia 1)",
-    youtubeId: "fUdwmhtmk1g",
+    title: "Introducción / ejemplo para inspirarte",
+    youtubeId: "DPTihWkXtEE",
     category: "Inspiración",
-    notes: "Útil para ver ritmo, escenas y cómo se resuelven decisiones."
+    notes: "Uno de los videos que estaban embebidos en el index original."
   },
   {
-    title: "Reglas / explicación (referencia 2)",
+    title: "Qué necesitás para jugar (checklist rápido)",
+    youtubeId: "YJbaGMvydS4",
+    category: "Reglas",
+    notes: "Video del index original. Ideal para explicar 'qué es D&D' y cómo arrancar."
+  },
+  {
+    title: "Clip corto: minotauro / humor (inspiración)",
+    youtubeId: "PJxd_s-VMmQ",
+    category: "Inspiración",
+    notes: "Enlace del index original (short). Sirve para sumar energía y vibes."
+  },
+
+  // ---- Tus videos nuevos ----
+  {
+    title: "D&D con CLERSSSSS | El Rey sin Corazón (PARTE 1)",
+    youtubeId: "fUdwmhtmk1g",
+    category: "Campañas",
+    notes: "Para tomar ritmo: escenas, decisiones, roleo y resolución.",
+    campaignIdea: "Campaña tipo 'road‑movie' con misterio y NPCs recurrentes."
+  },
+  {
+    title: "Guía / partida (referencia extra)",
     youtubeId: "pFuEgCNBM7w",
     category: "Reglas",
-    notes: "Para sacar ideas de cómo explicar checks, iniciativa y acciones."
+    notes: "Referencia extra. Si el video cambia, podés editar título/nota acá.",
+    campaignIdea: "One‑shot tutorial: explicar d20, DC, ventaja, combate simple."
   },
   {
-    title: "Creador / armado de PJ (referencia 3)",
+    title: "Flickering Mist | The Door of Ebralgon [D&D SHOW]",
     youtubeId: "na7emqvAsis",
-    category: "Crear PJ",
-    notes: "Para tomar ejemplos de atributos, trasfondo y equipo inicial."
+    category: "Campañas",
+    notes: "Buen material para ideas de escenas y tono narrativo.",
+    campaignIdea: "Campaña de terror/misterio con niebla, puertas y 'señales' sobrenaturales."
   }
 ];
 
-// Si querés curar una playlist completa, pegala acá:
 export const PLAYLIST_URL = "";
