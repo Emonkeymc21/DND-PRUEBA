@@ -187,7 +187,6 @@ export function RpgSignupForm({ onDone, compact }: Props) {
               </option>
             ))}
           </select>
-        </div>
       </div>
 
       <div className={step === 1 ? "space-y-3" : "hidden space-y-3"}>
