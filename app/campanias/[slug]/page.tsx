@@ -2,12 +2,9 @@ import { Badge, Button, Card } from "@/components/ui";
 import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
-type Props = { params: Promise<{ slug: string }> };
-
+type CampaignSlugPageProps = { params: Promise<{ slug: string }> };
 
 export const metadata = { title: "Campaña" };
-
-type Props = { params: { slug: string } };
 
 export default function CampaignDetail({ params }: Props) {
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
