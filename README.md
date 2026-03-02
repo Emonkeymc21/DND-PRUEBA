@@ -4,10 +4,11 @@ Este repo trae una web completa en **español** con:
 
 - Home educativa (qué es D&D, cómo se juega, FAQ)
 - `/videos` videos embebidos con lista editable
-- `/simulador` one-shot tutorial interactivo en español
+- `/simulador` one-shot tutorial con **motor por escenas JSON** + **narrador por voz** (SpeechSynthesis)
+- `/creador` creador rápido SRD (API pública)
 - `/campanias` campañas + formulario guardado en **Postgres** + `/admin` para ver inscriptos
 
-> UI/estética inspirada en tu `index.html` (oscuro + dorado + niebla/atmósfera).
+> UI/estética inspirada en tu `index.html` (oscuro + dorado + niebla/atmósfera). fileciteturn1file0
 
 ---
 
@@ -49,9 +50,10 @@ Abrí `http://localhost:3000`
 - Seteá `ADMIN_PASSWORD` en `.env.local`
 - Entrá a `/admin` → te redirige a `/admin/login`
 
-## Nota
+## APIs SRD (gratis, sin API Key)
 
-Este repo evita dependencias de APIs externas para las secciones principales (videos, simulador y campañas).
+- El creador consume la **D&D 5e API** pública: `https://www.dnd5eapi.co/api/2014/...` citeturn0search0
+- Alternativa/extra: Open5e API citeturn0search1
 
 ## Deploy 1-click
 
@@ -70,7 +72,7 @@ Este repo evita dependencias de APIs externas para las secciones principales (vi
 - Publish dir: `.next`
 - Variables: las mismas que Vercel.
 
-> Nota: si no configurás DB, la app sigue andando (simulador y videos). Campañas/Admin necesitan DB.
+> Nota: si no configurás DB, la app sigue andando (simulador, videos, creador). Campañas/Admin necesitan DB.
 
 ---
 
@@ -79,6 +81,7 @@ Este repo evita dependencias de APIs externas para las secciones principales (vi
 - `app/(marketing)` landing
 - `app/videos`
 - `app/simulador`
+- `app/creador`
 - `app/campanias` + `app/campanias/[slug]`
 - `app/admin` + `app/admin/login`
 - `app/api/*` route handlers
