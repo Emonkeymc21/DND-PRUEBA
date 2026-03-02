@@ -82,19 +82,54 @@ export function RpgSignupForm({ onDone, compact }: Props) {
 
   const dots = [0, 1, 2, 3];
 
-  function submit(e: React.FormEvent<HTMLFormElement>) {
-  if (sending) {
-    e.preventDefault();
-    return;
-  }
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  if (sending) return;
+
   setSending(true);
-  // Dejamos que el browser haga el POST al Google Forms (target hidden_iframe).
-  // Marcamos enviado con un pequeño delay para dar tiempo a completar el request.
-  window.setTimeout(() => {
+  try {
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+
+    const payload = {
+      email: fd.get(F.email),
+      name: fd.get(F.name),
+      instagram: fd.get(F.instagram),
+      experience: fd.get(F.experience),
+      rules: fd.get(F.rules),
+      theme: fd.get(F.theme),
+      style: fd.get(F.style),
+      playMode: fd.get(F.playMode),
+      freq: fd.get(F.freq),
+      // availability fields are separate in this form
+      availability: [
+        fd.get(F.availability[0]),
+        fd.get(F.availability[1]),
+        fd.get(F.availability[2]),
+      ].filter(Boolean),
+      avoid: fd.get(F.avoid),
+      notes: fd.get(F.notes),
+    };
+
+    const resp = await fetch("/api/rpg-signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const msg = await resp.text().catch(() => "");
+      throw new Error(`No se pudo enviar el formulario (status ${resp.status}). ${msg}`);
+    }
+
     setSent(true);
-    setSending(false);
     onDone?.();
-  }, 700);
+  } catch (err) {
+    console.error(err);
+    alert("No pudimos enviar tu respuesta al formulario. Probá de nuevo en unos segundos.");
+  } finally {
+    setSending(false);
+  }
 }
 
 
@@ -111,8 +146,7 @@ export function RpgSignupForm({ onDone, compact }: Props) {
   }
 
   return (
-    <form onSubmit={submit} action="https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse" method="POST" target="hidden_iframe" className="space-y-4">
-      <iframe title="hidden_iframe" name="hidden_iframe" className="hidden" />
+    <form onSubmit={submit} className="space-y-4">
       <div className="flex items-center justify-center gap-2" aria-hidden>
         {dots.map((d) => (
           <span
