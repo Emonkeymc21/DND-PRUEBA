@@ -108,3 +108,7 @@ export const CAMPAIGNS: Campaign[] = [
 ];
 
 export const CAMPAIGN_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true";
+
+
+// Alias para compatibilidad con imports anteriores
+export const CAMPAIGN_EXAMPLES = CAMPAIGNS;

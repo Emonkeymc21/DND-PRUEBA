@@ -6,8 +6,9 @@ import { CAMPAIGNS, CAMPAIGN_FORM_EMBED_URL } from "@/data/campaigns";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inscripción" };
 
-export default function CampaniaSlugPage({ params }: { params: { slug: string } }) {
-  const campaign = CAMPAIGNS.find((c) => c.slug === params.slug);
+export default async function CampaniaSlugPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const campaign = CAMPAIGNS.find((c) => c.slug === slug);
   if (!campaign) return notFound();
 
   return (
