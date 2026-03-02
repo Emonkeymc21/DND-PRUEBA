@@ -389,8 +389,8 @@ export default function SimulatorClient() {
       )}
 
       {sceneId !== "choose" && (
-
-      <Card className="space-y-3">
+        <div className="space-y-4">
+          <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold text-primary">{scene.title}</h2>
@@ -466,9 +466,9 @@ export default function SimulatorClient() {
             </Button>
           ))}
         </div>
-      </Card>
+          </Card>
 
-      <Card>
+          <Card>
         <h3 className="font-bold text-primary">Registro de mesa</h3>
         <div className="mt-3 max-h-64 space-y-1 overflow-auto rounded-xl border border-border/60 bg-black/25 p-3 text-sm">
           {log.length === 0 ? (
@@ -477,7 +477,8 @@ export default function SimulatorClient() {
             log.map((l, idx) => <div key={idx}>{l}</div>)
           )}
         </div>
-      </Card>
+          </Card>
+        </div>
       )}
     </div>
   );
