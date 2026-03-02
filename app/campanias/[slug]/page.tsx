@@ -6,7 +6,9 @@ type CampaignSlugPageProps = { params: Promise<{ slug: string }> };
 
 export const metadata = { title: "Campaña" };
 
-export default function CampaignDetail({ params }: Props) {
+type CampaignSlugPageProps = { params: { slug: string } };
+
+export default function CampaignDetail({ params }: CampaignSlugPageProps) {
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
