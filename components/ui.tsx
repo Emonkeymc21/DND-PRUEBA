@@ -57,3 +57,71 @@ export function Card({
     </div>
   );
 }
+
+export function Input({
+  label,
+  className,
+  ...props
+}: { label?: string; className?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="block">
+      {label ? <span className="mb-1 block text-xs font-semibold text-text/80">{label}</span> : null}
+      <input
+        className={cn(
+          "w-full rounded-md border border-border/70 bg-black/40 px-3 py-2 text-sm text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+          className
+        )}
+        {...props}
+      />
+    </label>
+  );
+}
+
+export function Textarea({
+  label,
+  className,
+  ...props
+}: { label?: string; className?: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <label className="block">
+      {label ? <span className="mb-1 block text-xs font-semibold text-text/80">{label}</span> : null}
+      <textarea
+        className={cn(
+          "w-full rounded-md border border-border/70 bg-black/40 px-3 py-2 text-sm text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+          className
+        )}
+        {...props}
+      />
+    </label>
+  );
+}
+
+export function Select({
+  label,
+  options,
+  className,
+  ...props
+}: {
+  label?: string;
+  options: { value: string; label: string }[];
+  className?: string;
+} & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <label className="block">
+      {label ? <span className="mb-1 block text-xs font-semibold text-text/80">{label}</span> : null}
+      <select
+        className={cn(
+          "w-full rounded-md border border-border/70 bg-black/40 px-3 py-2 text-sm text-text outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+          className
+        )}
+        {...props}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
