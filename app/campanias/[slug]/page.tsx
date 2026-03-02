@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Badge, Button, Card } from "@/components/ui";
 import { CAMPAIGN_EXAMPLES } from "@/data/campaigns";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Detalle de campaña" };
 
 export default function CampaignDetail({ params }: { params: { slug: string } }) {
