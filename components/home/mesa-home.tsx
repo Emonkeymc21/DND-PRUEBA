@@ -255,9 +255,6 @@ export default function MesaHome() {
               Ver videos
             </Link>
             <span className="hidden sm:inline">•</span>
-              Crear personaje
-            </Link>
-            <span className="hidden sm:inline">•</span>
             <Link className="hover:text-primary" href="/campanias">
               Campañas
             </Link>
