@@ -154,13 +154,29 @@ function rollD20() {
 }
 
 function pickEpicSpanishVoice(voices: SpeechSynthesisVoice[]) {
-  // Preferimos una voz española/latam "natural" si existe.
+  // Elegimos una voz en español. Si existe una voz “natural/premium” o una voz masculina, la priorizamos.
   const es = voices.filter(v => (v.lang || "").toLowerCase().startsWith("es"));
-  const preferred = es.find(v => /google|natural|premium/i.test(v.name)) || es.find(v => /microsoft/i.test(v.name)) || es[0];
-  return preferred;
+  if (!es.length) return voices[0];
+
+  const score = (v: SpeechSynthesisVoice) => {
+    const name = (v.name || "").toLowerCase();
+    let s = 0;
+    if (/google|natural|premium|neural/.test(name)) s += 6;
+    if (/microsoft|azure/.test(name)) s += 4;
+    // heurística de “masculina” (depende del navegador / proveedor)
+    if (/male|masc|hombre|varon|man/.test(name)) s += 3;
+    // preferimos es-ES / es-AR / es-MX
+    const lang = (v.lang || "").toLowerCase();
+    if (lang.startsWith("es-es")) s += 2;
+    if (lang.startsWith("es-ar")) s += 2;
+    if (lang.startsWith("es-mx")) s += 1;
+    return s;
+  };
+
+  return [...es].sort((a,b) => score(b)-score(a))[0] || es[0];
 }
 
-function speak(text: string, rate: number, voice?: SpeechSynthesisVoice) {
+function speak(text: string, rate: number, pitch: number, voice?: SpeechSynthesisVoice) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
@@ -168,6 +184,8 @@ function speak(text: string, rate: number, voice?: SpeechSynthesisVoice) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = (voice?.lang || "es-ES");
   u.rate = rate;
+  // Un pitch más bajo suele sentirse “más profundo”
+  u.pitch = pitch;
   if (voice) u.voice = voice;
 
   window.speechSynthesis.speak(u);
@@ -175,16 +193,17 @@ function speak(text: string, rate: number, voice?: SpeechSynthesisVoice) {
 
 export default function SimulatorClient() {
 
-  const [sceneId, setSceneId] = React.useState("start");
+  const [sceneId, setSceneId] = React.useState("choose");
   const [storyStyle, setStoryStyle] = React.useState<StoryStyle | null>(null);
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
-  const [rate, setRate] = React.useState(1.0);
+  const [rate, setRate] = React.useState(0.92);
+  const [pitch, setPitch] = React.useState(0.68);
   const [voice, setVoice] = React.useState<SpeechSynthesisVoice | undefined>(undefined);
   const [hp, setHp] = React.useState(12);
   const [enemyHp, setEnemyHp] = React.useState(16);
 
-  const scene = scenes[sceneId];
+  const scene = sceneId === "choose" ? null : (scenes[sceneId] ?? scenes["start"]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -201,9 +220,9 @@ export default function SimulatorClient() {
 
   React.useEffect(() => {
     if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voice);
+    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, pitch, voice);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sceneId, autoNarrate, rate, voice]);
+  }, [sceneId, autoNarrate, rate, pitch, voice]);
 
   function resetCombat() {
     setHp(12);
@@ -212,8 +231,10 @@ export default function SimulatorClient() {
 
   function go(next: string) {
     setSceneId(next);
+    const inferred = inferStyleFromSceneId(next);
+    if (inferred) setStoryStyle(inferred);
     const s = scenes[next];
-    if (next === "start") {
+    if (next === "choose") {
       setLog([]);
       resetCombat();
     }
@@ -242,7 +263,7 @@ export default function SimulatorClient() {
     setLog((l) => [...l, ok ? `✅ ${r.success.text}` : `⚠️ ${r.fail.text}`]);
   }
 
-  function doCombat(playerAttackMod: number, advantage?: boolean) {
+  function doCombat(playerAttackMod: number, advantage?: boolean, nextOnWin?: string) {
     // Simplificado:
     // - vos atacás: d20 + mod vs AC 12; si pega: 1d8+3
     // - enemigo ataca: d20 + 3 vs tu AC 12; si pega: 1d6+1
@@ -264,7 +285,7 @@ export default function SimulatorClient() {
 
     if (newEnemy <= 0) {
       setEnemyHp(0);
-      go("combat_end");
+      go(nextOnWin ?? "combat_end");
       return;
     }
 
@@ -281,7 +302,7 @@ export default function SimulatorClient() {
     if (newHp <= 0) {
       setHp(0);
       setLog((l) => [...l, "💀 Caíste. Reiniciá y probá otra ruta."]);
-      go("start");
+      go("choose");
       return;
     }
 
@@ -309,18 +330,66 @@ export default function SimulatorClient() {
     if (next) return go(String(next));
 
     setLog((l) => [...l, "⚠️ Opción sin destino. Reinicio para evitar bloqueo."]);
-    go("start");
+    go("choose");
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error("[Simulator] onOption", e);
     setLog((l) => [...l, "⚠️ Error al procesar la opción. Reinicio para evitar bloqueo."]);
-    go("start");
+    go("choose");
   }
 }
+
+  function startWithStyle(style: StoryStyle) {
+    setStoryStyle(style);
+    setLog([]);
+    resetCombat();
+    // Arranque con intro dedicada por temática
+    const first = style === "fantasy" ? "start_fantasy"
+      : style === "scifi" ? "start_scifi"
+      : style === "anime" ? "start_anime"
+      : style === "harry" ? "start_harry"
+      : "start_terror";
+    setSceneId(first);
+  }
 
 
   return (
     <div className="space-y-4">
+      {sceneId === "choose" && (
+        <Card className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-primary">Elegí tu aventura</h2>
+              <p className="text-sm text-text/80">Seleccioná la temática antes de comenzar. La narración automática empieza después.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={autoNarrate} onChange={(e) => setAutoNarrate(e.target.checked)} />
+                Auto narrar
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                Velocidad
+                <input type="range" min={0.8} max={1.25} step={0.05} value={rate} onChange={(e) => setRate(Number(e.target.value))} />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                Voz (grave)
+                <input type="range" min={0.6} max={1.05} step={0.05} value={pitch} onChange={(e) => setPitch(Number(e.target.value))} />
+              </label>
+            </div>
+          </div>
+
+          <div className="grid gap-2 md:grid-cols-2">
+            <Button type="button" onClick={() => startWithStyle("fantasy")} className="justify-start">🗡️ Fantasía (clásica)</Button>
+            <Button type="button" onClick={() => startWithStyle("scifi")} className="justify-start">🚀 Sci‑Fi (futuro)</Button>
+            <Button type="button" onClick={() => startWithStyle("anime")} className="justify-start">⚡ Anime / Shonen</Button>
+            <Button type="button" onClick={() => startWithStyle("harry")} className="justify-start">🪄 Mundo mágico</Button>
+            <Button type="button" onClick={() => startWithStyle("terror")} className="justify-start">🕯️ Terror</Button>
+          </div>
+        </Card>
+      )}
+
+      {sceneId !== "choose" && (
+
       <Card className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -338,10 +407,21 @@ export default function SimulatorClient() {
               <input
                 type="range"
                 min={0.8}
-                max={1.3}
+                max={1.25}
                 step={0.05}
                 value={rate}
                 onChange={(e) => setRate(Number(e.target.value))}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              Voz (grave)
+              <input
+                type="range"
+                min={0.6}
+                max={1.05}
+                step={0.05}
+                value={pitch}
+                onChange={(e) => setPitch(Number(e.target.value))}
               />
             </label>
           </div>
@@ -351,14 +431,14 @@ export default function SimulatorClient() {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voice)}
+            onClick={() => { if (!scene) return; speak(`${scene.title}. ${scene.text}`, rate, pitch, voice); }}
             type="button"
             variant="ghost"
           >
             🔊 Escuchar narración
           </Button>
           <Button
-            onClick={() => { setLog([]); setSceneId("start"); resetCombat(); }}
+            onClick={() => { setLog([]); setStoryStyle(null); setSceneId("choose"); resetCombat(); }}
             type="button"
             variant="ghost"
           >
@@ -398,6 +478,7 @@ export default function SimulatorClient() {
           )}
         </div>
       </Card>
+      )}
     </div>
   );
 }
