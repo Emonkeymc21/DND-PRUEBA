@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enables browser sourcemaps in production to diagnose client-side exceptions on Netlify
   productionBrowserSourceMaps: true,
 };
-module.exports = nextConfig;
+
+export default nextConfig;
