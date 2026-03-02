@@ -27,7 +27,7 @@ function rollD20() {
   return Math.floor(Math.random() * 20) + 1;
 }
 
-function speak(text: string, rate: number, voiceURI?: string) {
+function speak(text: string, rate: number, voiceURI?: string, pitch: number = 1.0) {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
@@ -35,6 +35,7 @@ function speak(text: string, rate: number, voiceURI?: string) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "es-AR";
   u.rate = rate;
+  u.pitch = pitch;
 
   const voices = window.speechSynthesis.getVoices();
   if (voiceURI) {
@@ -48,13 +49,15 @@ export default function SimulatorClient() {
   const [sceneId, setSceneId] = React.useState("start");
   const [log, setLog] = React.useState<string[]>([]);
   const [autoNarrate, setAutoNarrate] = React.useState(true);
-  const [rate, setRate] = React.useState(1.0);
+  const [rate, setRate] = React.useState(0.95);
+  const [epic, setEpic] = React.useState(true);
+  const [pitch, setPitch] = React.useState(0.75);
   const [voiceURI, setVoiceURI] = React.useState<string | undefined>(undefined);
   const [voices, setVoices] = React.useState<SpeechSynthesisVoice[]>([]);
   const [hp, setHp] = React.useState(12);
   const [enemyHp, setEnemyHp] = React.useState(16);
 
-  const scene = scenes[sceneId];
+  const scene = scenes[sceneId] ?? scenes["start"];
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -68,7 +71,7 @@ export default function SimulatorClient() {
 
   React.useEffect(() => {
     if (!autoNarrate) return;
-    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI);
+    if (scene?.narrate) speak(`${scene.title}. ${scene.text}`, rate, voiceURI, epic ? pitch : 1.0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sceneId, autoNarrate, rate, voiceURI]);
 
@@ -201,6 +204,10 @@ export default function SimulatorClient() {
               Auto narrar
             </label>
             <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={epic} onChange={(e) => setEpic(e.target.checked)} />
+              Voz épica
+            </label>
+            <label className="flex items-center gap-2 text-sm">
               Velocidad
               <input
                 type="range"
@@ -231,7 +238,7 @@ export default function SimulatorClient() {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI)}
+            onClick={() => speak(`${scene.title}. ${scene.text}`, rate, voiceURI, epic ? pitch : 1.0)}
             type="button"
             variant="ghost"
           >
