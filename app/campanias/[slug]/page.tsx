@@ -3,12 +3,8 @@ import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
 export const metadata = { title: "Campaña" };
-type CampaignParams = { slug: string };
-type CampaignDetailProps = { params: CampaignParams | Promise<CampaignParams> };
-
-export default async function CampaignDetail({ params }: CampaignDetailProps) {
-  const { slug } = await params;
-
+export default async function CampaignDetail({ params }: { params: { slug: string } }) {
+  const { slug } = params;
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
