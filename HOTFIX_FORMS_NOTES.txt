@@ -1,0 +1,16 @@
+HOTFIX – Google Forms submission (Netlify safe)
+
+Qué se corrigió:
+- El formulario de inscripción (components/forms/rpg-signup-form.tsx) antes hacía POST directo a Google Forms con iframe oculto y marcaba "Enviado" por timeout.
+  Eso podía fallar silenciosamente (multi-page tokens / selección múltiple / validaciones) y en Netlify parecía "enviado" pero no se registraba.
+
+Solución:
+- Se agregó un endpoint server-side: app/api/rpg-signup/route.ts
+  - Hace GET al viewform para extraer tokens hidden (fbzx/fvv)
+  - Hace POST a formResponse con application/x-www-form-urlencoded
+  - Maneja checkboxes correctamente repitiendo entry.* por cada valor
+  - No envía campos vacíos
+- El formulario ahora llama a /api/rpg-signup y solo muestra "Enviado" si el servidor confirma OK.
+
+Netlify:
+- netlify.toml actualizado para usar @netlify/plugin-nextjs (API routes funcionan en Netlify).
