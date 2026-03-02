@@ -287,8 +287,8 @@ React.useEffect(() => {
           className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
         >
           {PLAY_MODES.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
+            <option key={m} value={m}>
+              {m}
             </option>
           ))}
         </select>
@@ -302,8 +302,8 @@ React.useEffect(() => {
           className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
         >
           {FREQUENCY.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
+            <option key={f} value={f}>
+              {f}
             </option>
           ))}
         </select>
