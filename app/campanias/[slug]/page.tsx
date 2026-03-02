@@ -1,24 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Button, Card } from "@/components/ui";
-import { CAMPAIGNS } from "@/data/campaigns";
+import { CAMPAIGNS, CAMPAIGN_FORM_EMBED_URL } from "@/data/campaigns";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Campaña" };
+export const metadata = { title: "Inscripción" };
 
-type Props = { params: { slug: string } };
-
-export default function CampaignPage({ params }: Props) {
-  const slug = params.slug;
-
-  const campaign = CAMPAIGNS.find((c) => c.slug === slug);
+export default function CampaniaSlugPage({ params }: { params: { slug: string } }) {
+  const campaign = CAMPAIGNS.find((c) => c.slug === params.slug);
   if (!campaign) return notFound();
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <Badge>{campaign.genre}</Badge>
-        <span className="text-sm text-text/70">{campaign.system}</span>
+        <span className="text-xs text-text/70">{campaign.system}</span>
       </div>
 
       <h1 className="text-balance text-4xl font-extrabold md:text-5xl">{campaign.title}</h1>
@@ -46,26 +42,25 @@ export default function CampaignPage({ params }: Props) {
       </div>
 
       <Card className="space-y-3">
-        <div className="text-lg font-bold text-primary">Hoja de Inscripción</div>
+        <div className="text-lg font-bold text-primary">Hoja de inscripción</div>
         <p className="text-sm text-text/80">
-          Esta inscripción es la misma que en el Home (estilo “La Mesa Perdida”). No usa DB: se envía al formulario.
+          No usamos DB. La inscripción se hace por formulario (como en el Home original).
         </p>
 
-        {/* Si tenés un Google Forms real, reemplazá FORM_URL en data/campaigns.ts */}
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button as="link" href={campaign.formUrl} className="w-full sm:w-auto">
-            Abrir formulario
+          <Button as="link" href={campaign.formEmbedUrl.replace("embedded=true", "")} className="w-full sm:w-auto">
+            Abrir formulario en pestaña
           </Button>
           <Link className="text-sm text-text/80 hover:text-primary" href="/videos">
-            Ver videos recomendados →
+            Ver videos sugeridos →
           </Link>
         </div>
 
         <div className="mt-2 overflow-hidden rounded-xl border border-border/60">
           <iframe
             title="Formulario de inscripción"
-            src={campaign.formUrl}
-            className="h-[75vh] w-full"
+            src={campaign.formEmbedUrl || CAMPAIGN_FORM_EMBED_URL}
+            className="h-[78vh] w-full"
             loading="lazy"
           />
         </div>

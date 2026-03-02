@@ -1,82 +1,110 @@
-export type CampaignGenre = "Fantasía" | "Terror" | "Sci‑Fi" | "Anime" | "Humor" | "Misterio";
+export type CampaignGenre = "Fantasía" | "Terror" | "Sci‑Fi" | "Anime" | "Misterio" | "Épica";
 
-export type CampaignExample = {
-  id: number;
+export type Campaign = {
   slug: string;
   title: string;
-  genre: CampaignGenre[];
-  level: string;
-  duration: string;
+  genre: CampaignGenre;
   system: string;
+  tone: string;
+  duration: string;
+  difficulty: string;
+  seats: string;
   description: string;
-  highlights: string[];
-  is_open: boolean;
+  hooks: string[];
+  formEmbedUrl: string;
 };
 
-export const CAMPAIGN_EXAMPLES: CampaignExample[] = [
+export const CAMPAIGNS: Campaign[] = [
   {
-    id: 1,
-    slug: "la-mina-perdida-de-fogmarsh",
-    title: "La Mina Perdida de Fogmarsh",
-    genre: ["Fantasía", "Misterio"],
-    level: "Niveles 1–5",
-    duration: "4–6 sesiones",
-    system: "D&D 5e (SRD friendly)",
+    slug: "el-llamado",
+    title: "El Llamado (One‑Shot de Inicio)",
+    genre: "Fantasía",
+    system: "D&D 5e (SRD)",
+    tone: "Aventura, humor, épica",
+    duration: "1 sesión (2–4 hs)",
+    difficulty: "Fácil (nuevo friendly)",
+    seats: "3–5 jugadores",
     description:
-      "Un mapa viejo, un pueblo con secretos y una mina que no debería volver a abrirse. Aventuras clásicas, ritmo rápido y decisiones que cambian el destino del valle.",
-    highlights: ["Exploración", "Combate táctico", "NPCs memorables", "Final con giro"],
-    is_open: true
+      "Una taberna, un mensaje sellado y una deuda antigua. Ideal para aprender lo básico: tiradas, roleo, combate corto y decisiones.",
+    hooks: [
+      "Aprendés lo esencial jugando",
+      "Combate simple + skill checks",
+      "Final con giro",
+    ],
+    formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true",
   },
   {
-    id: 2,
-    slug: "cazadores-de-sombras-zenin",
-    title: "Cazadores de Sombras: Zenin Protocol",
-    genre: ["Anime", "Terror", "Misterio"],
-    level: "Niveles 3–7",
-    duration: "6–10 sesiones",
-    system: "5e + reglas ligeras (cinemático)",
+    slug: "umbral-rojo",
+    title: "El Umbral Rojo",
+    genre: "Terror",
+    system: "D&D 5e (SRD)",
+    tone: "Horror, tensión, supervivencia",
+    duration: "Mini‑arco (3–6 sesiones)",
+    difficulty: "Media",
+    seats: "3–5 jugadores",
     description:
-      "Exorcistas, maldiciones y un barrio donde las luces parpadean cuando cae el sol. Técnica especial + tensión real. Si te gusta Jujutsu Kaisen: estás en casa.",
-    highlights: ["Técnicas/estilos", "Investigación", "Boss fights", "Decisiones morales"],
-    is_open: true
+      "El bosque te devuelve la mirada. Una aldea entera recuerda un nombre que nadie debería pronunciar. Decisiones con peso y consecuencias.",
+    hooks: [
+      "Tensión narrativa (velas apagadas)",
+      "Pistas, paranoia y secretos",
+      "Final alternativo según elecciones",
+    ],
+    formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true",
   },
   {
-    id: 3,
-    slug: "neon-ruins-77",
-    title: "Neon Ruins ’77",
-    genre: ["Sci‑Fi", "Humor", "Misterio"],
-    level: "One‑shot / 1–2 sesiones",
-    duration: "1 noche",
-    system: "Sistema ligero narrativo (sin estrés)",
+    slug: "neon-y-acero",
+    title: "Neón y Acero",
+    genre: "Sci‑Fi",
+    system: "D&D 5e (adaptación ligera)",
+    tone: "Cyberpunk, acción, intriga",
+    duration: "Mini‑arco (4–8 sesiones)",
+    difficulty: "Media/Alta",
+    seats: "3–5 jugadores",
     description:
-      "Hackers, neón, corporaciones y un paquete que jamás debiste aceptar. Ideal para probar rol sin abrumarte: poco reglamento, muchas decisiones.",
-    highlights: ["Heists", "Tensión + humor", "Finales múltiples", "Perfecta para nuevos"],
-    is_open: true
+      "Corporaciones, callejones húmedos y un chip que no debería existir. Hackeos (skill checks), persecuciones y acuerdos que salen caros.",
+    hooks: [
+      "Misiones estilo 'heist'",
+      "Recompensas y traiciones",
+      "Estética neon + música",
+    ],
+    formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true",
   },
   {
-    id: 4,
-    slug: "la-tabla-rota-de-valdis",
-    title: "La Tabla Rota de Valdis",
-    genre: ["Terror", "Fantasía"],
-    level: "Niveles 5–9",
-    duration: "8–12 sesiones",
-    system: "D&D 5e",
+    slug: "sellos-rotos",
+    title: "Sellos Rotos",
+    genre: "Anime",
+    system: "D&D 5e (shonen vibes)",
+    tone: "Shonen, poder creciente, drama",
+    duration: "Arco (6–12 sesiones)",
+    difficulty: "Media",
+    seats: "3–6 jugadores",
     description:
-      "Un bosque que respira, una aldea que miente y una entidad que responde a los nombres que nadie pronuncia. Oscura, intensa, pero con épica.",
-    highlights: ["Terror atmosférico", "Ritual final", "Aliados ambiguos", "Consecuencias duras"],
-    is_open: false
+      "Un torneo, un juramento y un sello ancestral que se agrieta. Subís de nivel como protagonista: momentos hype, rivalidades y revelaciones.",
+    hooks: [
+      "Combos y escenas cinematográficas",
+      "Rivales recurrentes",
+      "Momentos 'power‑up' narrativos",
+    ],
+    formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true",
   },
   {
-    id: 5,
-    slug: "academia-arkana",
-    title: "Academia Arkana",
-    genre: ["Fantasía", "Misterio", "Humor"],
-    level: "Niveles 1–4",
-    duration: "3–5 sesiones",
-    system: "5e (suave)",
+    slug: "la-corona-de-ceniza",
+    title: "La Corona de Ceniza",
+    genre: "Épica",
+    system: "D&D 5e (SRD)",
+    tone: "Alta fantasía, política, guerra",
+    duration: "Campaña larga (12+ sesiones)",
+    difficulty: "Media/Alta",
+    seats: "4–6 jugadores",
     description:
-      "Escuela de magia, rivalidades, exámenes rarísimos y un misterio bajo la biblioteca prohibida. Vibes de mundo mágico, ideal para roleo.",
-    highlights: ["Social", "Misterios", "Hechizos creativos", "Misiones cortas"],
-    is_open: true
-  }
+      "Reinos que se quiebran, pactos prohibidos y una corona que nadie debería portar. Diplomacia, batallas y decisiones de largo alcance.",
+    hooks: [
+      "Política + misiones de élite",
+      "Batallas con objetivos",
+      "Final por 'rutas' según alianzas",
+    ],
+    formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true",
+  },
 ];
+
+export const CAMPAIGN_FORM_EMBED_URL = "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/viewform?embedded=true";
