@@ -12,10 +12,10 @@ export default function VideosPage() {
   return (
     <div className="space-y-10">
       <div>
-        <Badge>📼 Curación configurable</Badge>
+        <Badge>Videoteca</Badge>
         <h1 className="mt-3 text-4xl font-extrabold">Videos</h1>
         <p className="mt-2 max-w-3xl text-text/80">
-          Editá <code className="rounded bg-black/40 px-1 py-0.5">data/videos.ts</code> para cambiar IDs, títulos y categorías.
+          Una selección para entrar en clima. Elegí una categoría y mirá la lista completa.
         </p>
       </div>
 
