@@ -288,9 +288,9 @@ export default function MesaHome() {
       </section>
 
       <section className="space-y-6">
-        <h2 className="text-2xl font-extrabold md:text-3xl">Video Vault</h2>
+        <h2 className="text-2xl font-extrabold md:text-3xl">Videoteca</h2>
         <p className="max-w-3xl text-text/80">
-          Los videos que estaban en el index original (más la lista completa en{" "}
+          Una selección para entrar en clima. Mirá la lista completa en{" "}
           <Link className="text-primary underline" href="/videos">
             /videos
           </Link>

@@ -10,10 +10,8 @@ export default function AdminLogin() {
       <h1 className="text-4xl font-extrabold">Ingreso Admin</h1>
       <Card>
         <AdminLoginForm />
-        <p className="mt-3 text-xs text-text/70">
-          Seguridad simple por contraseña en <code className="rounded bg-black/40 px-1 py-0.5">ADMIN_PASSWORD</code>.
-        </p>
-      </Card>
+        <p className="mt-3 text-xs text-text/70">Acceso restringido. Si no tenés la clave, volvé al inicio.</p>
+</Card>
     </div>
   );
 }
