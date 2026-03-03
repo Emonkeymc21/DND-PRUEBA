@@ -34,7 +34,7 @@ export const CAMPAIGNS: Campaign[] = [
     slug: "ark-zero",
     title: "ARK‑ZERO: Señal en el Vacío",
     description:
-      "Sci‑fi con horror: una nave abandonada transmite una señal imposible. IA, corredores sin luz y decisiones duras.",
+      "Sci‑fi con horror: una nave abandonada transmite una señal imposible. sistemas autónomos, corredores sin luz y decisiones duras.",
     genre: ["Sci‑Fi", "Terror"],
     style: "One‑shot",
     levelRange: "Nivel 3–4",

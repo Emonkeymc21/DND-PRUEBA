@@ -10,7 +10,7 @@
         "next": "fan_start"
       },
       {
-        "label": "🚀 Sci‑Fi / Cyberpunk (IA y neón)",
+        "label": "🚀 Sci‑Fi / Cyberpunk (neón y callejones)",
         "kind": "link",
         "next": "sci_start"
       },
@@ -408,7 +408,7 @@
       },
       "fail": {
         "next": "sci_alarm",
-        "text": "Saltan alarmas. La IA te marca."
+        "text": "Saltan alarmas. La sistema autónomo te marca."
       }
     }
   },
@@ -494,7 +494,7 @@
   },
   "sci_tunnel": {
     "title": "Mantenimiento",
-    "text": "En el túnel encontrás un cable vivo: la IA está escuchando.",
+    "text": "En el túnel encontrás un cable vivo: la sistema autónomo está escuchando.",
     "narrate": true,
     "options": [
       {
@@ -520,7 +520,7 @@
   },
   "sci_core": {
     "title": "Núcleo",
-    "text": "La IA aparece como un rostro de luz: 'Quiero libertad. Vos querés sobrevivir.'",
+    "text": "La sistema autónomo aparece como un rostro de luz: 'Quiero libertad. Vos querés sobrevivir.'",
     "narrate": true,
     "options": [
       {
@@ -614,7 +614,7 @@
   },
   "ani_test": {
     "title": "Prueba",
-    "text": "Tenés que romper una piedra sin romperte a vos. Sentís el ki subir.",
+    "text": "El maestro te señala una piedra. Si la rompés sin lastimarte, avanzás. Sentís el ki subir.",
     "narrate": true,
     "options": [
       {

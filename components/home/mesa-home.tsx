@@ -179,7 +179,7 @@ function QuizContent() {
           <div className="text-sm text-text/70">Resultado</div>
           <div className="mt-1 text-2xl font-extrabold text-primary">{best}</div>
           <p className="mt-2 text-text/80">
-            Mini‑quiz (sin IA, sin keys). Si querés, probá el simulador para ver decisiones + tiradas en acción.
+            Mini‑quiz (sin claves, sin vueltas). Si querés, probá el simulador para ver decisiones + tiradas en acción.
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Button as="link" href="/simulador" className="w-full sm:w-auto">
