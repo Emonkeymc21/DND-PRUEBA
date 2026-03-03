@@ -5,8 +5,8 @@ import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 export const metadata = { title: "Campaña" };
 
 
-export default async function CampaignDetail({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function CampaignDetail({ params }: { params: any }) {
+  const { slug } = await params;
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
