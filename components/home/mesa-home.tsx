@@ -290,12 +290,16 @@ export default function MesaHome() {
       <section className="space-y-6">
         <h2 className="text-2xl font-extrabold md:text-3xl">Videoteca</h2>
         <p className="max-w-3xl text-text/80">
-          Una selección para entrar en clima. Mirá la lista completa en{" "}
-          <Link className="text-primary underline" href="/videos">
-            /videos
-          </Link>
-          ).
+          Una selección para entrar en clima.
         </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button as="link" href="/videos">
+            Abrir videoteca
+          </Button>
+          <Link className="text-sm text-text/70 underline decoration-border/60 underline-offset-4 hover:text-text" href="/videos?focus=weekly">
+            Sugerencias de la semana
+          </Link>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {indexVideos.map((v) => (
             <Card key={v.id} className="space-y-3">
