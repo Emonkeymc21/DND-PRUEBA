@@ -98,13 +98,6 @@ Abrí `http://localhost:3000`
 
 ---
 
-## Opcional: “modo IA” (sin romper el modo gratis)
-
-El simulador funciona 100% por reglas/plantillas y escenas JSON.  
-Si querés, podés agregar una ruta `/api/ai` que use un LLM con `OPENAI_API_KEY` y un toggle en UI. Por defecto **NO** se usa.
-
-
-
 ## Netlify (deploy)
 
 - El repo incluye `netlify.toml` con el plugin de Next.js.
