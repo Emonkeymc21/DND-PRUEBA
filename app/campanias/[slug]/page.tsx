@@ -1,4 +1,4 @@
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, Container } from "@/components/ui";
 import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
 import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 
@@ -7,8 +7,8 @@ export const metadata = { title: "Campaña" };
 
 // Next.js App Router provides params synchronously as a plain object.
 // Typing it explicitly avoids PageProps constraint mismatches during Netlify builds.
-export default async function CampaignDetail({ params }: any) {
-  const { slug } = await params;
+export default async function CampaignDetail({ params }: { params: { slug: string } }) {
+  const { slug } = params;
   const campaign = CAMPAIGNS.find((c) => c.slug === slug);
 
   if (!campaign) {
@@ -26,39 +26,79 @@ export default async function CampaignDetail({ params }: any) {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6 space-y-3">
-        <Badge>🧭 Campaña</Badge>
-        <h1 className="text-2xl font-extrabold text-primary">{campaign.title}</h1>
-        <p className="text-text/80">{campaign.description}</p>
-        <p className="text-sm text-yellow-200/80">{CAMPAIGN_EXAMPLES_NOTICE}</p>
+    <Container className="py-6">
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Detalle */}
+        <div className="lg:col-span-7 space-y-6">
+          <Card className="p-6 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>🧭 Campaña</Badge>
+              <span
+                className={`rounded-full border border-border/60 px-3 py-1 text-xs ${
+                  campaign.is_open ? "bg-emerald-500/15 text-emerald-200" : "bg-red-500/15 text-red-200"
+                }`}
+              >
+                {campaign.is_open ? "Inscripciones abiertas" : "Inscripciones cerradas"}
+              </span>
+            </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-text/70">
-          <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Estilo: {campaign.style}</span>
-          <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Nivel: {campaign.levelRange}</span>
-          <span
-            className={`rounded-full border border-border/60 px-3 py-1 ${
-              campaign.is_open ? "bg-emerald-500/20 text-emerald-200" : "bg-red-500/20 text-red-200"
-            }`}
-          >
-            {campaign.is_open ? "Abierta" : "Cerrada"}
-          </span>
+            <h1 className="text-3xl font-extrabold leading-tight text-primary sm:text-4xl">{campaign.title}</h1>
+            <p className="text-base text-text/80">{campaign.description}</p>
+
+            <div className="flex flex-wrap gap-2 text-xs text-text/70">
+              <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Estilo: {campaign.style}</span>
+              <span className="rounded-full border border-border/60 bg-black/20 px-3 py-1">Nivel: {campaign.levelRange}</span>
+            </div>
+
+            <div className="rounded-2xl border border-border/60 bg-black/20 p-4">
+              <p className="text-sm text-text/80">
+                {CAMPAIGN_EXAMPLES_NOTICE}
+              </p>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Button
+                  as="link"
+                  href="#inscripcion"
+                  className="w-full sm:w-auto relative overflow-hidden rounded-2xl px-5 py-3 text-base font-extrabold tracking-wide shadow-lg shadow-black/40 ring-1 ring-white/10 hover:scale-[1.01] active:scale-[0.99] transition"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-amber-500/90 via-fuchsia-500/80 to-cyan-500/80 opacity-90" />
+                  <span className="relative">⚔️ Anotarme ahora</span>
+                </Button>
+
+                <Button as="link" href="/videos" variant="ghost" className="w-full sm:w-auto">
+                  Ver videoteca
+                </Button>
+                <Button as="link" href="/simulador" variant="ghost" className="w-full sm:w-auto">
+                  Probar simulador
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-extrabold text-primary">¿Qué vas a vivir?</h2>
+            <ul className="mt-3 space-y-2 text-sm text-text/80">
+              <li>• Decisiones reales, consecuencias y momentos memorables.</li>
+              <li>• Tiradas visibles y ritmo ágil para entrar en clima rápido.</li>
+              <li>• Cuidado de la mesa: límites claros y buen ambiente.</li>
+            </ul>
+          </Card>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button as="link" href="/videos">Ver videos</Button>
-          <Button as="link" href="/simulador" variant="ghost">Probar simulador</Button>
-          <Button as="link" href="/campanias" variant="ghost">Volver</Button>
+        {/* Inscripción */}
+        <div className="lg:col-span-5">
+          <Card id="inscripcion" className="p-6 space-y-3 lg:sticky lg:top-24">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-extrabold text-primary">Inscripción</h2>
+              <Badge>🎲 Cupos limitados</Badge>
+            </div>
+            <p className="text-sm text-text/80">
+              Completá el cuestionario y te contactamos para coordinar.
+            </p>
+            <RpgSignupForm compact />
+          </Card>
         </div>
-      </Card>
-
-      <Card className="p-6 space-y-3">
-        <h2 className="text-lg font-extrabold text-primary">Anotarme a esta campaña</h2>
-        <p className="text-sm text-text/80">
-          Formulario propio del sitio (envía a Google Forms). 100% gratis y sin DB.
-        </p>
-        <RpgSignupForm compact />
-      </Card>
-    </div>
+      </div>
+    </Container>
   );
 }

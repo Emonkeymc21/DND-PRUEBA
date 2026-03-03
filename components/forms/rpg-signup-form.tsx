@@ -402,10 +402,11 @@ React.useEffect(() => {
           <Button
             key="submit"
             type="submit"
-            className="w-full sm:flex-1"
+            className="w-full sm:flex-1 relative overflow-hidden rounded-2xl px-5 py-3 text-base font-extrabold tracking-wide shadow-lg shadow-black/40 ring-1 ring-white/10"
             disabled={sending}
           >
-            {sending ? "Enviando…" : "Enviar"}
+            <span className="absolute inset-0 bg-gradient-to-r from-amber-500/90 via-fuchsia-500/80 to-cyan-500/80 opacity-90" />
+            <span className="relative">{sending ? "Enviando…" : "Enviar inscripción"}</span>
           </Button>
         )}
       </div>
