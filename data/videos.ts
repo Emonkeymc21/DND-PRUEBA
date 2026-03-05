@@ -56,7 +56,7 @@ export const VIDEOS: CuratedVideo[] = [
     category: "Campañas",
     notes: "Buen material para ideas de escenas y tono narrativo.",
     campaignIdea: "Campaña de terror/misterio con niebla, puertas y 'señales' sobrenaturales."
-  }
+  },
 
   // ---- Nuevos videos (marzo 2026) ----
   {
