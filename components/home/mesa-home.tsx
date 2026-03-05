@@ -331,6 +331,14 @@ export default function MesaHome() {
   const [signup, setSignup] = React.useState(false);
   const [quiz, setQuiz] = React.useState(false);
   const [trailer, setTrailer] = React.useState(false);
+  const [showTop, setShowTop] = React.useState(false);
+
+  React.useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 650);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const topVideos = React.useMemo(() => VIDEOS.slice(0, 3), []);
 
@@ -489,7 +497,7 @@ export default function MesaHome() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-text/70">Deslizá para ver más</span>
+                      <span className="text-xs text-text/60" aria-label="Deslizá para ver más" title="Deslizá para ver más">↔</span>
                       <button
                         type="button"
                         className="rounded-full border border-border/70 bg-black/35 px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary/70 hover:text-white"
@@ -504,8 +512,7 @@ export default function MesaHome() {
             ))}
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-xs text-text/70 md:hidden">
-            <span>Tip: deslizá ➜</span>
+          <div className="mt-3 flex items-center justify-end text-xs text-text/70 md:hidden">
             <Link href="/campanias" className="text-primary underline-offset-4 hover:underline">
               Ver campañas
             </Link>
@@ -566,9 +573,18 @@ export default function MesaHome() {
           desc="Spoiler: nadie sale igual. Y eso es lo mejor."
         />
         <div className="grid gap-4 md:grid-cols-3">
-          <Quote text="Entré por curiosidad. Me quedé porque fue la primera vez que sentí que “yo era el personaje”." who="Jugador (primer mesa)" />
-          <Quote text="Me daba vergüenza rolear. A la segunda sesión ya estaba gritando hechizos como si fuera normal." who="Jugadora (0 experiencia)" />
-          <Quote text="Es como Stranger Things… pero vos sos parte del Hellfire. Y encima conocés gente copada." who="Jugador (fan ST)" />
+          <Quote
+            text="Entré por curiosidad. Me quedé porque fue la primera vez que sentí que 'yo era el personaje'."
+            who="Lucía M. — Jugadora (Barda, 1ra mesa)"
+          />
+          <Quote
+            text="Yo era re tímido para rolear. A la segunda sesión ya estaba negociando con dragones con voz y todo."
+            who="Agustín R. — Jugador (Paladín, social)"
+          />
+          <Quote
+            text="Dirigí años en homebrew, pero esto me devolvió la magia: mesa rápida, épica y con gente copada."
+            who="Marcos V. — DM (5e, storyteller)"
+          />
         </div>
       </section>
 
@@ -647,6 +663,24 @@ export default function MesaHome() {
           />
         </div>
       </section>
+
+      {/* Back to top */}
+      <button
+        type="button"
+        aria-label="Ir arriba"
+        title="Ir arriba"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className={[
+          "fixed right-4 z-50 grid h-12 w-12 place-items-center rounded-full border border-border/70 bg-black/55 text-text/90 shadow-[0_16px_50px_rgba(0,0,0,0.55)] backdrop-blur transition",
+          "hover:border-primary/70 hover:text-primary",
+          "md:right-6 md:h-13 md:w-13",
+          // keep above sticky CTA on mobile
+          "bottom-[5.25rem] md:bottom-6",
+          showTop ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-2",
+        ].join(" ")}
+      >
+        <span className="text-lg leading-none">↑</span>
+      </button>
 
       {/* Sticky mobile CTA */}
       <div className="safe-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-black/70 px-4 py-3 backdrop-blur md:hidden">
