@@ -528,8 +528,9 @@ export default function MesaHome() {
             </div>
             <div className="relative space-y-3">
               <div className="text-sm font-bold text-text">Mini‑trailer</div>
+              {/* CuratedVideo usa youtubeId (ver data/videos.ts). */}
               <YoutubeFrame
-                id={topVideos[0]?.id ?? "dQw4w9WgXcQ"}
+                id={topVideos[0]?.youtubeId ?? "dQw4w9WgXcQ"}
                 title={topVideos[0]?.title ?? "Trailer"}
               />
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -545,12 +546,12 @@ export default function MesaHome() {
 
           <div className="grid gap-4">
             {topVideos.slice(1).map((v) => (
-              <Card key={v.id} className="space-y-3">
+              <Card key={v.youtubeId} className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-bold text-text">{v.title}</div>
                   <span className="text-xs text-text/60">YouTube</span>
                 </div>
-                <YoutubeFrame id={v.id} title={v.title} />
+                <YoutubeFrame id={v.youtubeId} title={v.title} />
               </Card>
             ))}
           </div>
@@ -682,7 +683,7 @@ export default function MesaHome() {
       </Modal>
 
       <Modal open={trailer} onClose={() => setTrailer(false)} title="Trailer">
-        <YoutubeFrame id={topVideos[0]?.id ?? "dQw4w9WgXcQ"} title={topVideos[0]?.title ?? "Trailer"} />
+        <YoutubeFrame id={topVideos[0]?.youtubeId ?? "dQw4w9WgXcQ"} title={topVideos[0]?.title ?? "Trailer"} />
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Button className="w-full sm:w-auto" onClick={() => setSignup(true)} type="button">
             Me sumo
