@@ -102,3 +102,44 @@ h1,h2,h3{
   *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
   .fog{display:none}
 }
+
+
+/* Hide horizontal scrollbar (mobile carousels) */
+.no-scrollbar::-webkit-scrollbar{ display:none; }
+.no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
+
+/* Aurora background (lightweight, CSS-only) */
+.aurora{
+  position:absolute;
+  inset:-30%;
+  background:
+    radial-gradient(40% 45% at 20% 15%, rgba(212,175,55,.45) 0%, transparent 60%),
+    radial-gradient(35% 40% at 65% 20%, rgba(138,3,3,.35) 0%, transparent 60%),
+    radial-gradient(40% 45% at 55% 70%, rgba(255,106,0,.25) 0%, transparent 60%),
+    radial-gradient(40% 45% at 20% 75%, rgba(212,175,55,.22) 0%, transparent 60%);
+  filter: blur(18px) saturate(1.2);
+  animation: auroraShift 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes auroraShift{
+  0%{ transform: translate3d(-2%, -1%, 0) scale(1); }
+  50%{ transform: translate3d(2%, 1%, 0) scale(1.06); }
+  100%{ transform: translate3d(-2%, -1%, 0) scale(1); }
+}
+
+/* Film grain (tiny inline svg noise) */
+.grain{
+  position:absolute;
+  inset:0;
+  opacity:.12;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Improve fog perf on mobile */
+@media (max-width: 768px){
+  .fog::before{ opacity:.18; }
+  .fog::after{ opacity:.12; }
+}
