@@ -3,6 +3,19 @@
 import * as React from "react";
 import scenesRaw from "@/data/simulator/scenes.es.json";
 import { Button, Card } from "@/components/ui";
+import { D20, type RollResult } from "@/components/dice/d20";
+import { FreeAction } from "@/components/simulator/free-action";
+import { TraitBars } from "@/components/simulator/trait-bars";
+import {
+  NEUTRAL_TRAITS,
+  applyTraitDelta,
+  describeProfile,
+  suggestClass,
+  traitsToTags,
+  type TraitDelta,
+  type Traits,
+} from "@/lib/traits";
+import { setMuted as setSfxMuted } from "@/lib/audio/sfx";
 
 type Effects = Record<string, number>;
 
@@ -60,6 +73,19 @@ function inferThemeFromSceneId(id: string): ThemeKey {
   if (id.startsWith("hor_")) return "horror";
   return "none";
 }
+
+const THEME_LABEL: Record<ThemeKey, string> = {
+  fantasy: "fantasía épica",
+  scifi: "sci-fi / cyberpunk",
+  anime: "anime / shonen",
+  magic: "mundo mágico",
+  horror: "terror",
+  none: "fantasía",
+};
+
+/** Clave con la que el formulario de postulación levanta el perfil del test. */
+export const PROFILE_STORAGE_KEY = "mesa_perfil_tags";
+export const PROFILE_TRAITS_KEY = "mesa_perfil_traits";
 
 function defaultStats(theme: ThemeKey): Record<string, number> {
   // Variables “tipo rol”: cambian por género. Todas quedan visibles y afectan algunos checks / finales.
@@ -240,6 +266,16 @@ export default function SimulatorClient() {
   const [theme, setTheme] = React.useState<ThemeKey>("none");
   const [stats, setStats] = React.useState<Record<string, number>>({});
 
+  // Perfil del jugador: se mueve con cada acción de texto libre y termina
+  // viajando junto a la postulación.
+  const [traits, setTraits] = React.useState<Traits>(NEUTRAL_TRAITS);
+  const [freeTurns, setFreeTurns] = React.useState(0);
+  const [sfxOn, setSfxOn] = React.useState(true);
+
+  React.useEffect(() => {
+    setSfxMuted(!sfxOn);
+  }, [sfxOn]);
+
   const scene = scenes[sceneId] ?? null;
 
   const { ensureContext: ensureAudioContext } = useAmbientMusic(theme, musicOn, musicVol);
@@ -300,6 +336,8 @@ export default function SimulatorClient() {
     setEnemyHp(16);
     setTheme("none");
     setStats({});
+    setTraits(NEUTRAL_TRAITS);
+    setFreeTurns(0);
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   }
 
@@ -424,6 +462,59 @@ export default function SimulatorClient() {
     setHp(newHp);
   }
 
+  /**
+   * Resuelve un turno de texto libre.
+   *
+   * La narración viene del servidor (IA o heurístico) y describe el INTENTO;
+   * el d20 que ya tiró la persona decide si sale bien. Con un crítico o una
+   * pifia el desenlace se pasa de rosca para los dos lados.
+   */
+  function onFreeAction(payload: {
+    action: string;
+    narration: string;
+    delta: TraitDelta;
+    roll: RollResult;
+    ai: boolean;
+  }) {
+    const { action, narration, delta, roll } = payload;
+
+    setTraits((t) => applyTraitDelta(t, delta));
+    setFreeTurns((n) => n + 1);
+
+    const desenlace = roll.crit
+      ? "🌟 Crítico: sale incluso mejor de lo que imaginabas."
+      : roll.fumble
+        ? "💥 Pifia: sale mal, y de una forma que no viste venir."
+        : roll.success
+          ? "✅ Te sale."
+          : "⚠️ No te sale como esperabas.";
+
+    setLog((l) => [
+      ...l,
+      `✍️ Vos: ${action}`,
+      `📖 ${narration}`,
+      `🎲 ${roll.roll}${roll.dc !== null ? ` vs DC ${roll.dc}` : ""} → ${desenlace}`,
+    ]);
+
+    if (autoNarrate) speak(narration);
+  }
+
+  /**
+   * Lleva el perfil a la home y abre el formulario.
+   * Va por sessionStorage porque son datos de esta sesión, no algo que
+   * convenga dejar pegado en el navegador para siempre.
+   */
+  function goToSignup() {
+    try {
+      const tags = [...traitsToTags(traits), `Clase: ${suggestClass(traits)}`];
+      window.sessionStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(tags));
+      window.sessionStorage.setItem(PROFILE_TRAITS_KEY, JSON.stringify(traits));
+    } catch {
+      // sessionStorage puede fallar en modo privado; el formulario sigue andando igual.
+    }
+    window.location.href = "/#postularme";
+  }
+
   function onOption(opt: RawSceneOption) {
     try {
       // AudioContext: necesitamos gesto del usuario para que la música se reproduzca en algunos navegadores
@@ -524,7 +615,25 @@ export default function SimulatorClient() {
               </div>
             )}
 
+            {freeTurns > 0 && (
+              <div className="space-y-2 border-t border-border/50 pt-3">
+                <div className="text-xs font-semibold tracking-[0.18em] text-muted">TU PERFIL</div>
+                <TraitBars traits={traits} />
+              </div>
+            )}
+
             <div className="mt-2 space-y-2 border-t border-border/50 pt-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-text/70">Sonido de dados</span>
+                <button
+                  type="button"
+                  className="rounded-lg border border-border/60 px-2 py-1 text-xs"
+                  onClick={() => setSfxOn((v) => !v)}
+                >
+                  {sfxOn ? "ON" : "OFF"}
+                </button>
+              </div>
+
               <div className="flex items-center justify-between text-xs">
                 <span className="text-text/70">Auto‑narración</span>
                 <button
@@ -612,7 +721,13 @@ export default function SimulatorClient() {
         {scene.options?.length ? (
           <div className="mt-4 grid gap-2">
             {scene.options.map((o, i) => (
-              <Button key={`${sceneId}-${i}`} onClick={() => onOption(o)} className="justify-start">
+              <Button
+                key={`${sceneId}-${i}`}
+                onClick={() => onOption(o)}
+                variant="ghost"
+                className="justify-start text-left"
+              >
+                {o.kind === "check" ? "🎲 " : o.kind === "combat" ? "⚔️ " : ""}
                 {o.label}
               </Button>
             ))}
@@ -623,9 +738,60 @@ export default function SimulatorClient() {
           </div>
         )}
 
+        {/* Texto libre: sólo cuando la escena sigue abierta y ya elegiste temática. */}
+        {!isEnding && scene.options?.length && sceneId !== "choose_theme" ? (
+          <div className="mt-5">
+            <FreeAction
+              key={`${sceneId}-${freeTurns}`}
+              sceneTitle={scene.title}
+              sceneText={scene.text}
+              theme={THEME_LABEL[theme]}
+              history={log.slice(-6)}
+              onResolved={onFreeAction}
+            />
+          </div>
+        ) : null}
+
         {isEnding && (
-          <div className="mt-4">
-            <Button onClick={resetRun}>🔁 Volver a empezar</Button>
+          <div className="mt-5 space-y-4">
+            {freeTurns > 0 ? (
+              <div className="rounded-2xl border border-primary/40 bg-primary/5 p-5">
+                <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+                  Tu perfil de mesa
+                </div>
+
+                <p className="mt-2 text-[15px] leading-relaxed text-text/90">{describeProfile(traits)}</p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {traitsToTags(traits).map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                  <span className="rounded-full border border-mystic/50 bg-mystic/10 px-3 py-1 text-xs font-semibold text-mystic">
+                    Clase sugerida: {suggestClass(traits)}
+                  </span>
+                </div>
+
+                <div className="mt-4">
+                  <TraitBars traits={traits} />
+                </div>
+
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                  <Button className="w-full sm:w-auto" onClick={goToSignup} type="button">
+                    Postularme con este perfil
+                  </Button>
+                  <Button variant="ghost" className="w-full sm:w-auto" onClick={resetRun} type="button">
+                    🔁 Jugar de nuevo
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button onClick={resetRun}>🔁 Volver a empezar</Button>
+            )}
           </div>
         )}
       </Card>

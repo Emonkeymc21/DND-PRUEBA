@@ -23,7 +23,7 @@ export async function GET() {
     const rows = await sql`
       select
         id, created_at, name, contact, experience, mode,
-        availability, themes, notes, quiz_tags, contacted, archived, source
+        availability, themes, notes, quiz_tags, traits, contacted, archived, source
       from signups
       where archived = false
       order by created_at desc

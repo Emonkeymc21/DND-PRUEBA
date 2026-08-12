@@ -21,8 +21,11 @@ create table if not exists signups (
   themes       text[]      not null default '{}',  -- ej: {"Fantasía","Terror"}
   notes        text        null,
 
-  -- Perfil que devuelve el test de la home (si lo hizo)
+  -- Perfil que devuelven el test de la home y el simulador (si los hizo)
   quiz_tags    text[]      not null default '{}',
+  -- Ejes numéricos del perfil medidos en el simulador con IA:
+  -- {"creatividad":72,"equipo":55,"ley":-30,"combate":12}
+  traits       jsonb       null,
 
   -- Gestión
   contacted    boolean     not null default false,

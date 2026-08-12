@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge, Button, Card } from "@/components/ui";
 import { VIDEOS } from "@/data/videos";
 import RpgSignupForm from "@/components/forms/rpg-signup-form";
+import { D20, type RollResult } from "@/components/dice/d20";
 
 type ThemeCard = {
   title: string;
@@ -242,6 +243,7 @@ function QuizContent({ onSignup }: { onSignup: (tags: string[]) => void }) {
 
   const [idx, setIdx] = React.useState(0);
   const [tags, setTags] = React.useState<string[]>([]);
+  const [fate, setFate] = React.useState<RollResult | null>(null);
 
   const current = Q[idx];
   const done = idx >= Q.length;
@@ -301,6 +303,29 @@ function QuizContent({ onSignup }: { onSignup: (tags: string[]) => void }) {
             Si esto te movió algo… entonces estás a <span className="font-semibold text-primary">un click</span> de tu
             próxima obsesión.
           </div>
+
+          {/* Primera tirada: que toquen un dado antes de irse. */}
+          <div className="rounded-2xl border border-border/70 bg-surface/50 p-4">
+            <div className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-primary">
+              Tu primera tirada
+            </div>
+            <D20
+              dc={10}
+              label="Tirar por el destino"
+              onResult={(r) => setFate(r)}
+            />
+            {fate ? (
+              <p className="mt-1 text-center text-sm text-text/85">
+                {fate.crit
+                  ? "20 natural. La mesa te está esperando."
+                  : fate.fumble
+                    ? "Un 1. Igual entrás: los mejores personajes arrancan mal."
+                    : fate.success
+                      ? "Superaste la tirada. Buena señal."
+                      : "No llegaste. En rol eso también es una historia."}
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               className="w-full sm:w-auto"
@@ -315,6 +340,7 @@ function QuizContent({ onSignup }: { onSignup: (tags: string[]) => void }) {
               onClick={() => {
                 setIdx(0);
                 setTags([]);
+                setFate(null);
               }}
               type="button"
             >

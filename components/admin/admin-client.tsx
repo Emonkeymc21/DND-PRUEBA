@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Button, Card } from "@/components/ui";
 import { toCSV } from "@/lib/utils";
+import { TRAIT_META, type Traits } from "@/lib/traits";
 
 type Row = {
   id: number;
@@ -15,6 +16,7 @@ type Row = {
   themes: string[];
   notes: string | null;
   quiz_tags: string[];
+  traits: Traits | null;
   contacted: boolean;
   archived: boolean;
   source: string | null;
@@ -114,6 +116,10 @@ export default function AdminClient() {
         disponibilidad: (r.availability ?? []).join(" | "),
         temas: (r.themes ?? []).join(" | "),
         perfil_test: (r.quiz_tags ?? []).join(" | "),
+        creatividad: r.traits?.creatividad ?? "",
+        equipo: r.traits?.equipo ?? "",
+        eje_ley: r.traits?.ley ?? "",
+        eje_combate: r.traits?.combate ?? "",
         notas: r.notes ?? "",
         origen: r.source ?? "",
         contactado: r.contacted ? "si" : "no",
@@ -260,6 +266,33 @@ export default function AdminClient() {
                     {r.quiz_tags.join(" · ")}
                   </div>
                 ) : null}
+                {r.traits ? (
+                  <div className="space-y-1.5 rounded-lg border border-mystic/40 bg-mystic/5 p-3">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-mystic">
+                      Perfil medido en el simulador
+                    </div>
+                    {(Object.keys(TRAIT_META) as Array<keyof Traits>).map((k) => {
+                      const meta = TRAIT_META[k];
+                      const v = r.traits![k];
+                      // Los ejes bipolares van de -100 a 100: los llevamos a 0..100
+                      // para dibujar la barra.
+                      const pct = meta.bipolar ? (v + 100) / 2 : v;
+                      return (
+                        <div key={k} className="flex items-center gap-2">
+                          <span className="w-32 shrink-0 text-[11px] text-muted">{meta.label}</span>
+                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface">
+                            <span
+                              className="block h-full rounded-full bg-primary"
+                              style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+                            />
+                          </span>
+                          <span className="w-9 shrink-0 text-right text-[11px] text-text/80">{Math.round(v)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
                 {r.notes ? (
                   <div className="rounded-lg border border-border/60 bg-black/30 p-3 text-text/85">{r.notes}</div>
                 ) : null}

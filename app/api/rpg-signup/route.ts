@@ -28,7 +28,18 @@ const Schema = z.object({
   availability: z.array(z.string().max(40)).max(12).default([]),
   themes: z.array(z.string().max(40)).max(12).default([]),
   notes: z.string().trim().max(600).optional().or(z.literal("")),
-  quizTags: z.array(z.string().max(30)).max(10).default([]),
+  quizTags: z.array(z.string().max(40)).max(12).default([]),
+
+  // Perfil medido en el simulador. Se valida eje por eje: nada de guardar
+  // JSON arbitrario que mande el cliente.
+  traits: z
+    .object({
+      creatividad: z.number().min(0).max(100),
+      equipo: z.number().min(0).max(100),
+      ley: z.number().min(-100).max(100),
+      combate: z.number().min(-100).max(100),
+    })
+    .nullish(),
   source: z.string().trim().max(60).optional(),
 
   // Anti-bot (no se guardan)
@@ -109,7 +120,7 @@ export async function POST(req: Request) {
 
       const rows = await sql<{ id: number }[]>`
         insert into signups (
-          name, contact, experience, mode, availability, themes, notes, quiz_tags, source
+          name, contact, experience, mode, availability, themes, notes, quiz_tags, traits, source
         ) values (
           ${data.name},
           ${data.contact},
@@ -119,6 +130,7 @@ export async function POST(req: Request) {
           ${data.themes},
           ${notes},
           ${data.quizTags},
+          ${data.traits ? JSON.stringify(data.traits) : null},
           ${data.source ?? null}
         )
         returning id

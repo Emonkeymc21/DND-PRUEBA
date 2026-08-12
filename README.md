@@ -135,6 +135,70 @@ public/art/   Ilustraciones SVG propias
 
 ---
 
+## Simulador con IA y dados
+
+### Texto libre
+En cualquier escena podés elegir una opción **o escribir tu propia acción**.
+El servidor narra el intento, mide tu perfil y fija una dificultad; después tirás
+el d20 y el dado decide si sale.
+
+Punto de diseño importante: la narración nunca dice "lo lográs". Si lo dijera,
+escribir "gano la pelea" sería ganar la pelea. La IA describe el intento y la
+reacción del mundo; el resultado lo define la tirada.
+
+### Sin API key también funciona
+Si no configurás `GEMINI_API_KEY` ni `OPENAI_API_KEY`, el simulador usa un
+evaluador local por léxico (`lib/ai/heuristic.ts`): detecta el tipo de acción y
+narra con plantillas. Menos inteligente, pero el sitio nunca queda roto por
+depender de un servicio externo. En la interfaz aparece como "modo local".
+
+Gemini tiene capa gratis: https://aistudio.google.com/apikey
+
+### Perfil del jugador
+Cuatro ejes que se mueven con lo que hacés:
+
+| Eje | Rango | Qué mide |
+|---|---|---|
+| Creatividad | 0–100 | Cuánto se sale del camino obvio |
+| Trabajo en equipo | 0–100 | Cuánto involucra al grupo |
+| Caótico ↔ Legal | -100–100 | Improvisa o respeta el sistema |
+| Rol ↔ Combate | -100–100 | Resuelve hablando o peleando |
+
+Al terminar una partida podés postularte con ese perfil: viaja en la postulación
+(`traits` jsonb + etiquetas) y lo ves en `/admin`. Sirve para armar mesas
+compatibles antes de la primera charla.
+
+### El dado
+`components/dice/d20.tsx`. SVG de icosaedro con tumble 3D vía `rotate3d`
+(compuesto en GPU) y sonido sintetizado con Web Audio — cero archivos de audio.
+El resultado usa `crypto.getRandomValues` con rechazo del resto para no sesgar,
+y se calcula **antes** de la animación: la animación muestra el resultado, no lo
+decide.
+
+---
+
+## Bestiario
+
+`/bestiario` trae criaturas del SRD 5.1 desde [dnd5eapi.co](https://www.dnd5eapi.co)
+(gratis, abierta, contenido OGL). Va por un proxy propio (`/api/dnd5e`) que
+cachea 24 h, con whitelist de recursos para que nadie use el dominio como open
+proxy. Podés tirar un ataque contra la CA de cada criatura.
+
+---
+
+## Por qué no hay dependencias nuevas
+
+| Lo típico | Qué se usó | Motivo |
+|---|---|---|
+| `@google/generative-ai` / `openai` | `fetch` a la REST API | Es un POST con JSON; el SDK sólo suma cold start |
+| `three` / `react-three-fiber` | SVG + CSS `rotate3d` | ~600 kb para un dado no cierra en móvil |
+| `@xenova/transformers` / WebLLM | Inferencia en el servidor | Un modelo en browser son 100 MB–varios GB antes del primer token |
+| `howler` / archivos de audio | Web Audio sintetizado | 0 kb, funciona offline |
+
+El bundle del cliente no creció nada respecto de la versión anterior.
+
+---
+
 ## Dónde publicarlo
 
 La web no consigue jugadores por sí sola: es el lugar al que mandás a la gente

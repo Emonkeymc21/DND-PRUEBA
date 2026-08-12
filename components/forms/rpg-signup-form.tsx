@@ -3,6 +3,11 @@
 import * as React from "react";
 import { Button } from "@/components/ui";
 import { CONTACT, hasAnyContact } from "@/lib/site";
+import type { Traits } from "@/lib/traits";
+
+/** Misma clave que usa el simulador al terminar una partida. */
+const PROFILE_STORAGE_KEY = "mesa_perfil_tags";
+const PROFILE_TRAITS_KEY = "mesa_perfil_traits";
 
 /**
  * Formulario de postulación.
@@ -140,6 +145,26 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState<string | null>(null);
 
+  // Perfil que dejó el simulador. Si la persona jugó y vino a postularse,
+  // el resultado viaja con la postulación sin que tenga que reescribir nada.
+  const [simTags, setSimTags] = React.useState<string[]>([]);
+  const [simTraits, setSimTraits] = React.useState<Traits | null>(null);
+
+  React.useEffect(() => {
+    try {
+      const rawTags = window.sessionStorage.getItem(PROFILE_STORAGE_KEY);
+      if (rawTags) {
+        const parsed: unknown = JSON.parse(rawTags);
+        if (Array.isArray(parsed)) setSimTags(parsed.filter((t): t is string => typeof t === "string"));
+      }
+
+      const rawTraits = window.sessionStorage.getItem(PROFILE_TRAITS_KEY);
+      if (rawTraits) setSimTraits(JSON.parse(rawTraits) as Traits);
+    } catch {
+      // sessionStorage bloqueado (modo privado): seguimos sin perfil.
+    }
+  }, []);
+
   // Marca de tiempo para detectar bots que completan al instante.
   const startedAt = React.useRef<number>(Date.now());
 
@@ -175,7 +200,10 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
           availability,
           themes,
           notes: notes.trim(),
-          quizTags,
+          // Se combinan las etiquetas del test rápido con las del simulador,
+          // sin repetir.
+          quizTags: Array.from(new Set([...quizTags, ...simTags])).slice(0, 12),
+          traits: simTraits,
           source: source ?? "web",
           website: honeypot,
           elapsedMs: Date.now() - startedAt.current,
@@ -227,6 +255,25 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
           onChange={(e) => setHoneypot(e.target.value)}
         />
       </div>
+
+      {simTags.length > 0 ? (
+        <div className="rounded-xl border border-mystic/45 bg-mystic/10 p-4">
+          <div className="text-xs font-semibold uppercase tracking-widest text-mystic">
+            Perfil del simulador detectado
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {simTags.map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-mystic/50 px-3 py-1 text-xs font-semibold text-mystic"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted">Se envía junto con tu postulación.</p>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
