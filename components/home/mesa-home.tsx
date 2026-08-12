@@ -19,35 +19,35 @@ const THEME_CARDS: ThemeCard[] = [
     title: "Fantasía Épica",
     icon: "🐉",
     desc: "Dragones, espadas, juramentos. Clásico D&D / Tolkien, sin vueltas.",
-    bg: "https://codexarcana.org/wp-content/uploads/2017/03/pathfinder_rpg_party_commission_by_skiorh-d8pog9q1-1024x724.png",
+    bg: "/art/fantasia.svg",
     accent: "rgba(212,175,55,.55)"
   },
   {
     title: "Mundo Mágico",
     icon: "🪄",
     desc: "Escuelas, casas, secretos… y un hechizo que salió mal.",
-    bg: "https://www.gmbinder.com/images/dqekcCX.jpg",
+    bg: "/art/magico.svg",
     accent: "rgba(190,161,255,.45)"
   },
   {
     title: "Estilo Anime",
     icon: "⚡",
     desc: "Acción shonen: técnicas imposibles, rivalidad, hype y finales de capítulo.",
-    bg: "https://media.tycsports.com/files/2024/10/04/772894/kimetsu-no-yaiba-vs-jujutsu-kaisen_862x485.webp",
+    bg: "/art/anime.svg",
     accent: "rgba(255,106,0,.45)"
   },
   {
     title: "Terror & Oscuridad",
     icon: "🕯️",
-    desc: "Decisiones que pesan. Vibes Stranger Things / Hellfire, con tensión real.",
-    bg: "https://static0.dualshockersimages.com/wordpress/wp-content/uploads/2025/07/stranger-things-welcome-to-the-hellfire-club-eddie.jpg",
+    desc: "Decisiones que pesan. Tensión real, sin golpes bajos.",
+    bg: "/art/terror.svg",
     accent: "rgba(138,3,3,.55)"
   },
   {
     title: "Sci‑Fi / Cyberpunk",
     icon: "🚀",
     desc: "Neón, hackers, megacorporaciones. Si parpadeás, perdiste.",
-    bg: "https://www.tribality.com/wp-content/uploads/2015/12/force-and-destiny-cover.jpg",
+    bg: "/art/scifi.svg",
     accent: "rgba(0,220,255,.35)"
   }
 ];
@@ -209,7 +209,7 @@ function FaqItem({
   );
 }
 
-function QuizContent({ onSignup }: { onSignup: () => void }) {
+function QuizContent({ onSignup }: { onSignup: (tags: string[]) => void }) {
   const Q = [
     {
       q: "1) En una pelea, tu primer instinto es…",
@@ -304,7 +304,7 @@ function QuizContent({ onSignup }: { onSignup: () => void }) {
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               className="w-full sm:w-auto"
-              onClick={onSignup}
+              onClick={() => onSignup(tags)}
               type="button"
             >
               Postularme ahora
@@ -333,6 +333,10 @@ export default function MesaHome() {
   const [trailer, setTrailer] = React.useState(false);
   const [showTop, setShowTop] = React.useState(false);
 
+  // El perfil que devuelve el test viajaba a la nada. Ahora se guarda y se
+  // manda junto con la postulación, así sabés qué tipo de mesa busca cada uno.
+  const [quizTags, setQuizTags] = React.useState<string[]>([]);
+
   React.useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 650);
     onScroll();
@@ -351,7 +355,7 @@ export default function MesaHome() {
             className="absolute inset-0 opacity-70"
             style={{
               backgroundImage:
-                "linear-gradient(to bottom,rgba(0,0,0,.10) 0%,rgba(0,0,0,.65) 55%,rgba(0,0,0,1) 100%), url('https://cdn.nerdist.com/wp-content/uploads/2026/01/07083919/StrangerThings_S5_1000_R.jpg')",
+                "linear-gradient(to bottom,rgba(0,0,0,.10) 0%,rgba(0,0,0,.60) 55%,rgba(0,0,0,.97) 100%), url('/art/hero.svg')",
               backgroundSize: "cover",
               backgroundPosition: "center"
             }}
@@ -602,7 +606,7 @@ export default function MesaHome() {
           <div className="relative grid gap-6 md:grid-cols-[1fr_360px]">
             <div className="space-y-3">
               <div className="text-sm font-bold text-text">Formulario</div>
-              <RpgSignupForm />
+              <RpgSignupForm quizTags={quizTags} source="home-seccion" />
             </div>
 
             <div className="space-y-3">
@@ -704,12 +708,13 @@ export default function MesaHome() {
 
       {/* Modals */}
       <Modal open={signup} onClose={() => setSignup(false)} title="Postulate">
-        <RpgSignupForm />
+        <RpgSignupForm quizTags={quizTags} source="home-modal" />
       </Modal>
 
       <Modal open={quiz} onClose={() => setQuiz(false)} title="Test rápido (20s)">
         <QuizContent
-          onSignup={() => {
+          onSignup={(tags) => {
+            setQuizTags(tags);
             setQuiz(false);
             setSignup(true);
           }}

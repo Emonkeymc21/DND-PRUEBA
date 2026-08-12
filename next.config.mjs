@@ -1,26 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Keep Netlify builds stable (avoid failing deploys for lint/type noise).
-  // We still keep types in dev; this only prevents CI deploy from hard-failing.
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  reactStrictMode: true,
 
-  output: "standalone",
+  // ESLint no debe frenar un deploy; los errores de tipos SI se chequean con `npm run typecheck`.
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
 
-  experimental: {
-    typedRoutes: false,
-  },
-
+  // Todas las imagenes son locales (public/), no hace falta remotePatterns.
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "cdn.nerdist.com" },
-      { protocol: "https", hostname: "raw.githubusercontent.com" },
-    ],
+    formats: ["image/avif", "image/webp"],
+  },
+
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Permissions-Policy", value: "geolocation=(), microphone=(), camera=()" },
+        ],
+      },
+    ];
   },
 };
 

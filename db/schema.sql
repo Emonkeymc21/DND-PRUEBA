@@ -1,31 +1,41 @@
--- DB: Postgres (Neon o Supabase)
--- Ejecutar este SQL en tu consola de DB. (Neon: SQL Editor / Supabase: SQL Editor)
+-- ------------------------------------------------------------------
+-- Esquema del sitio. Postgres (Neon o Supabase).
+-- Correr con:  npm run db:setup
+-- (o pegarlo en el SQL Editor de Neon/Supabase)
+--
+-- Una sola tabla. Antes había dos sistemas de inscripción en paralelo
+-- (Google Forms + tabla `registrations`) y ninguno terminaba de andar.
+-- ------------------------------------------------------------------
 
-create table if not exists campaigns (
-  id bigserial primary key,
-  slug text unique not null,
-  title text not null,
-  description text not null,
-  is_open boolean not null default true,
-  created_at timestamptz not null default now()
+create table if not exists signups (
+  id           bigserial primary key,
+
+  -- Lo mínimo indispensable para poder contactar a la persona
+  name         text        not null,
+  contact      text        not null,   -- Instagram / Discord / mail / WhatsApp
+
+  -- Perfil de juego
+  experience   text        not null,   -- nuevo | poco | bastante | dm
+  mode         text        not null,   -- online | presencial | indistinto
+  availability text[]      not null default '{}',  -- ej: {"Vie noche","Sab tarde"}
+  themes       text[]      not null default '{}',  -- ej: {"Fantasía","Terror"}
+  notes        text        null,
+
+  -- Perfil que devuelve el test de la home (si lo hizo)
+  quiz_tags    text[]      not null default '{}',
+
+  -- Gestión
+  contacted    boolean     not null default false,
+  archived     boolean     not null default false,
+  source       text        null,       -- de dónde vino: instagram, discord, reddit...
+
+  created_at   timestamptz not null default now()
 );
 
-create table if not exists registrations (
-  id bigserial primary key,
-  campaign_id bigint references campaigns(id) on delete set null,
-  full_name text not null,
-  age int null,
-  contact text not null,
-  country text not null,
-  availability text not null,
-  experience text not null,
-  desired_role text not null,
-  preferences text not null,
-  lines_veils text null,
-  character_json_url text null,
-  contacted boolean not null default false,
-  created_at timestamptz not null default now()
-);
+create index if not exists signups_created_at_idx on signups (created_at desc);
+create index if not exists signups_contacted_idx  on signups (contacted);
 
-create index if not exists registrations_created_at_idx on registrations(created_at desc);
-create index if not exists registrations_contacted_idx on registrations(contacted);
+-- Búsqueda rápida por contacto (se usa para detectar envíos duplicados
+-- desde la app; no se hace con un índice único porque date_trunc() sobre
+-- timestamptz no es IMMUTABLE y Postgres rechaza el índice).
+create index if not exists signups_contact_idx on signups (lower(contact));

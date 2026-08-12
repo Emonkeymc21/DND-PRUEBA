@@ -5,10 +5,12 @@ import * as React from "react";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 
+// /admin no va en el menú público: es un panel privado y aparecía linkeado
+// para cualquiera que entrara al sitio. Se accede escribiendo la URL.
 const links = [
+  { href: "/campanias", label: "Campañas" },
+  { href: "/simulador", label: "Simulador" },
   { href: "/videos", label: "Videos" },
-  { href: "/simulador", label: "Simulador" },  { href: "/campanias", label: "Campañas" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function Header() {
@@ -35,7 +37,7 @@ export function Header() {
           </button>
 
           <Link href="/" className="font-semibold tracking-wide text-primary hover:text-white">
-            Grimorio D&D
+            La Mesa Perdida
           </Link>
         </div>
 

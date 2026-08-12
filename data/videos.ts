@@ -89,4 +89,16 @@ export const VIDEOS: CuratedVideo[] = [
 
 ];
 
+/**
+ * Pista de música ambiente del botón flotante.
+ * Cambiala por cualquier ID de YouTube (lo que va después de ?v= en la URL).
+ */
+export const MUSIC_VIDEO_ID = "wNKZkFs-hvE";
+
 export const PLAYLIST_URL = "";
+
+/**
+ * ⚠️ IMPORTANTE: verificá que cada youtubeId siga existiendo antes de publicar.
+ * Los videos se borran o se hacen privados y queda un reproductor en negro.
+ * Chequeo rápido: abrí https://www.youtube.com/watch?v=EL_ID en incógnito.
+ */

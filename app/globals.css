@@ -2,59 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts like index.html */
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Roboto:wght@300;400;700&display=swap");
+/* ------------------------------------------------------------------
+   TIPOGRAFÍA
+   Las fuentes se cargan con next/font en app/layout.tsx.
+   Antes había un @import de Google Fonts acá abajo, DESPUÉS de las
+   directivas @tailwind: la spec de CSS obliga a que todo @import esté al
+   principio absoluto del archivo, así que el navegador lo descartaba y
+   Cinzel nunca llegaba a cargar. next/font además auto-hospeda las fuentes
+   (cero request a Google) y reserva el espacio para que no haya salto.
+
+   PALETA — "fantasía oscura elegante"
+   - Fondo: negro con una gota de violeta, no gris plano.
+   - Texto: pergamino pálido (no blanco puro: cansa menos de noche).
+   - Primario: dorado oxidado / ámbar viejo.
+   - Acento: púrpura místico para lo interactivo y los estados.
+   - Ember: rojo óxido para peligro y detalles cálidos.
+   ------------------------------------------------------------------ */
 
 :root{
-  --primary: 212 175 55; /* #d4af37 */
-  --accent: 138 3 3;     /* #8a0303 */
-  --bg: 15 15 16;        /* #0f0f10 */
-  --card: 26 26 29;      /* #1a1a1d */
-  --text: 224 224 224;   /* #e0e0e0 */
-  --border: 51 51 51;
+  --bg:            11 9 16;      /* #0B0910 */
+  --surface:       19 16 27;     /* #13101B */
+  --card:          26 22 36;     /* #1A1624 */
+  --border:        49 41 68;     /* #312944 */
 
-  --fire-core: 255 247 0;
-  --fire-mid: 255 106 0;
+  --text:          237 228 211;  /* #EDE4D3  pergamino */
+  --muted:         166 156 176;  /* #A69CB0 */
+
+  --primary:       201 162 39;   /* #C9A227  dorado oxidado */
+  --primary-deep:  138 105 20;   /* #8A6914 */
+  --mystic:        139 106 209;  /* #8B6AD1  púrpura místico */
+  --ember:         166 62 40;    /* #A63E28  rojo óxido */
+
+  --fire-core:     255 214 102;
+  --fire-mid:      216 122 40;
 }
 
 [data-theme="light"]{
-  --bg: 245 245 247;
-  --card: 255 255 255;
-  --text: 24 24 28;
-  --border: 220 220 220;
+  --bg:            243 238 228;  /* pergamino claro */
+  --surface:       252 249 243;
+  --card:          255 253 249;
+  --border:        216 204 184;
+
+  --text:          32 26 22;
+  --muted:         104 94 86;
+
+  --primary:       138 105 20;
+  --primary-deep:  92 68 10;
+  --mystic:        94 62 158;
+  --ember:         150 52 32;
 }
 
 *{ -webkit-tap-highlight-color: transparent; }
 
 html{ scroll-behavior:smooth; }
+
 body{
-  font-family: "Roboto", system-ui, -apple-system, Segoe UI, sans-serif;
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
   background: rgb(var(--bg));
   color: rgb(var(--text));
-  min-height:100vh;
+  min-height:100dvh;
   overflow-x:hidden;
+  /* Textura sutil de fondo: dos halos fríos + uno cálido. Sin imágenes. */
+  background-image:
+    radial-gradient(58% 42% at 78% 4%,  rgb(var(--mystic) / .13) 0%, transparent 60%),
+    radial-gradient(48% 38% at 12% 12%, rgb(var(--primary) / .07) 0%, transparent 62%),
+    radial-gradient(70% 50% at 50% 104%, rgb(var(--ember) / .09) 0%, transparent 64%);
+  background-attachment: fixed;
 }
+
 h1,h2,h3{
-  font-family:"Cinzel",serif;
-  text-transform:uppercase;
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: .01em;
 }
 
-::selection{ background: rgba(var(--accent), .75); color:#fff; }
+/* El uppercase global aplastaba la legibilidad de los títulos largos.
+   Ahora sólo lo usan los títulos grandes de sección. */
+.title-caps{ text-transform:uppercase; letter-spacing:.06em; }
 
-::-webkit-scrollbar{ width:8px; }
-::-webkit-scrollbar-track{ background:#0f0f10; }
-::-webkit-scrollbar-thumb{ background:#333; border-radius:4px; border:1px solid rgba(var(--primary),1); }
+::selection{ background: rgb(var(--mystic) / .55); color:#fff; }
 
+::-webkit-scrollbar{ width:10px; }
+::-webkit-scrollbar-track{ background: rgb(var(--bg)); }
+::-webkit-scrollbar-thumb{
+  background: rgb(var(--border));
+  border-radius:8px;
+  border:2px solid rgb(var(--bg));
+}
+::-webkit-scrollbar-thumb:hover{ background: rgb(var(--primary-deep)); }
+
+/* Viñeta general */
 .dnd-shell::after{
   content:"";
   position:fixed;
   inset:0;
   pointer-events:none;
-  box-shadow: inset 0 0 150px rgba(0,0,0,.90);
+  box-shadow: inset 0 0 190px rgb(0 0 0 / .92);
   z-index:-2;
 }
 
-/* Fog like index */
+/* ------------------------------------------------------------------
+   NIEBLA — 100% CSS.
+   Antes cargaba un PNG desde raw.githubusercontent.com: hotlink a un repo
+   ajeno, sin CDN, que puede desaparecer sin aviso. Dos capas de gradientes
+   radiales dan el mismo efecto con cero requests.
+   ------------------------------------------------------------------ */
 .fog{
   position:fixed;
   inset:0;
@@ -68,16 +119,18 @@ h1,h2,h3{
   top:0; left:0;
   width:300vw;
   height:100vh;
-  background:url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png') repeat-x;
-  background-size:contain;
-  opacity:.30;
-  animation:fogAnim 60s linear infinite;
+  background:
+    radial-gradient(45% 55% at 12% 62%, rgb(var(--muted) / .11) 0%, transparent 62%),
+    radial-gradient(38% 48% at 34% 78%, rgb(var(--mystic) / .09) 0%, transparent 60%),
+    radial-gradient(52% 44% at 58% 68%, rgb(var(--muted) / .10) 0%, transparent 63%),
+    radial-gradient(40% 50% at 82% 80%, rgb(var(--primary) / .06) 0%, transparent 60%);
+  animation:fogAnim 90s linear infinite;
   will-change:transform;
 }
 .fog::after{
-  opacity:.20;
+  opacity:.6;
   animation-direction:reverse;
-  animation-duration:40s;
+  animation-duration:65s;
 }
 
 @keyframes fogAnim{
@@ -85,61 +138,94 @@ h1,h2,h3{
   100%{ transform:translate3d(-200vw,0,0); }
 }
 
-/* Utility */
+/* Texto dorado con volumen */
 .gold-gradient{
-  background: linear-gradient(to bottom,#cfc09f 0%, rgb(var(--primary)) 40%, #6b5619 100%);
+  background: linear-gradient(
+    to bottom,
+    #f0dda4 0%,
+    rgb(var(--primary)) 42%,
+    rgb(var(--primary-deep)) 100%
+  );
   -webkit-background-clip:text;
+  background-clip:text;
   -webkit-text-fill-color:transparent;
-  filter: drop-shadow(0 5px 15px rgba(0,0,0,.9));
+  color:transparent;
+  filter: drop-shadow(0 4px 14px rgb(0 0 0 / .85));
 }
 
-/* Mobile safe-area for fixed CTA */
-.safe-bottom{
-  padding-bottom: env(safe-area-inset-bottom);
+/* Filo dorado superior en tarjetas destacadas */
+.edge-top{ position:relative; }
+.edge-top::before{
+  content:"";
+  position:absolute;
+  inset:0 0 auto 0;
+  height:1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--primary) / .75), transparent);
 }
 
-@media (prefers-reduced-motion: reduce){
-  *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
-  .fog{display:none}
-}
+.safe-bottom{ padding-bottom: env(safe-area-inset-bottom); }
 
-
-/* Hide horizontal scrollbar (mobile carousels) */
 .no-scrollbar::-webkit-scrollbar{ display:none; }
 .no-scrollbar{ -ms-overflow-style:none; scrollbar-width:none; }
 
-/* Aurora background (lightweight, CSS-only) */
+/* Aurora decorativa (dorado + púrpura) */
 .aurora{
   position:absolute;
   inset:-30%;
   background:
-    radial-gradient(40% 45% at 20% 15%, rgba(212,175,55,.45) 0%, transparent 60%),
-    radial-gradient(35% 40% at 65% 20%, rgba(138,3,3,.35) 0%, transparent 60%),
-    radial-gradient(40% 45% at 55% 70%, rgba(255,106,0,.25) 0%, transparent 60%),
-    radial-gradient(40% 45% at 20% 75%, rgba(212,175,55,.22) 0%, transparent 60%);
-  filter: blur(18px) saturate(1.2);
-  animation: auroraShift 14s ease-in-out infinite;
+    radial-gradient(40% 45% at 20% 15%, rgb(var(--primary) / .38) 0%, transparent 60%),
+    radial-gradient(35% 40% at 65% 20%, rgb(var(--mystic) / .34) 0%, transparent 60%),
+    radial-gradient(40% 45% at 55% 70%, rgb(var(--ember)  / .24) 0%, transparent 60%),
+    radial-gradient(40% 45% at 20% 75%, rgb(var(--primary) / .20) 0%, transparent 60%);
+  filter: blur(20px) saturate(1.15);
+  animation: auroraShift 16s ease-in-out infinite;
   will-change: transform;
 }
 
 @keyframes auroraShift{
-  0%{ transform: translate3d(-2%, -1%, 0) scale(1); }
-  50%{ transform: translate3d(2%, 1%, 0) scale(1.06); }
-  100%{ transform: translate3d(-2%, -1%, 0) scale(1); }
+  0%{   transform: translate3d(-2%,-1%,0) scale(1); }
+  50%{  transform: translate3d(2%, 1%, 0) scale(1.06); }
+  100%{ transform: translate3d(-2%,-1%,0) scale(1); }
 }
 
-/* Film grain (tiny inline svg noise) */
+/* Grano de película */
 .grain{
   position:absolute;
   inset:0;
-  opacity:.12;
+  opacity:.10;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
   background-size: 220px 220px;
 }
 
-/* Improve fog perf on mobile */
+@keyframes floatUp{
+  0%{   transform: translateY(110vh) scale(.5); opacity:0; }
+  15%{  opacity:1; }
+  80%{  opacity:.5; }
+  100%{ transform: translateY(-10vh) scale(1.5); opacity:0; }
+}
+
+/* Foco visible y consistente en todo el sitio (accesibilidad) */
+:where(a, button, input, select, textarea):focus-visible{
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ------------------------------------------------------------------
+   MÓVIL: los efectos decorativos se apagan.
+   Eran la causa principal del scroll trabado en gama media, y la mayoría
+   del tráfico llega desde Instagram (o sea: casi todo es celular).
+   ------------------------------------------------------------------ */
 @media (max-width: 768px){
-  .fog::before{ opacity:.18; }
-  .fog::after{ opacity:.12; }
+  .fog{ display:none; }
+  .grain{ opacity:.05; }
+  .aurora{ animation:none; filter: blur(26px); }
+  body{ background-attachment: scroll; }
+  .dnd-shell::after{ box-shadow: inset 0 0 110px rgb(0 0 0 / .85); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+  .fog{ display:none; }
 }

@@ -7,81 +7,124 @@ import { toCSV } from "@/lib/utils";
 type Row = {
   id: number;
   created_at: string;
-  campaign_title: string | null;
-  full_name: string;
-  age: number | null;
+  name: string;
   contact: string;
-  country: string;
-  availability: string;
   experience: string;
-  desired_role: string;
-  preferences: string;
-  lines_veils: string | null;
-  character_json_url: string | null;
+  mode: string;
+  availability: string[];
+  themes: string[];
+  notes: string | null;
+  quiz_tags: string[];
   contacted: boolean;
+  archived: boolean;
+  source: string | null;
 };
+
+type Filter = "all" | "pending" | "contacted";
+
+const EXPERIENCE_LABEL: Record<string, string> = {
+  nuevo: "Nunca jugó",
+  poco: "Jugó poco",
+  bastante: "Juega seguido",
+  dm: "DM",
+};
+
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
 
 export default function AdminClient() {
   const [rows, setRows] = React.useState<Row[]>([]);
   const [q, setQ] = React.useState("");
-  const [onlyOpen, setOnlyOpen] = React.useState<"all" | "contacted" | "pending">("all");
+  const [filter, setFilter] = React.useState<Filter>("all");
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [expanded, setExpanded] = React.useState<number | null>(null);
 
-  async function load() {
+  const load = React.useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/admin/registrations", { cache: "no-store" });
+      const res = await fetch("/api/admin/signups", { cache: "no-store" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.detail || data?.error || "No se pudo cargar la lista.");
+        setRows([]);
+        return;
+      }
       const data = await res.json();
       setRows(Array.isArray(data) ? data : []);
+    } catch {
+      setError("Error de red al cargar las postulaciones.");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  React.useEffect(() => { void load(); }, []);
+  React.useEffect(() => {
+    void load();
+  }, [load]);
 
-  const filtered = rows.filter(r => {
-    const hay = `${r.full_name} ${r.contact} ${r.country} ${r.campaign_title ?? ""}`.toLowerCase();
-    if (q && !hay.includes(q.toLowerCase())) return false;
-    if (onlyOpen === "contacted" && !r.contacted) return false;
-    if (onlyOpen === "pending" && r.contacted) return false;
-    return true;
-  });
+  const filtered = React.useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filter === "contacted" && !r.contacted) return false;
+      if (filter === "pending" && r.contacted) return false;
+      if (!needle) return true;
+      const hay = [r.name, r.contact, r.source ?? "", ...(r.themes ?? []), ...(r.availability ?? [])]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [rows, q, filter]);
 
-  async function toggleContacted(id: number, next: boolean) {
-    const res = await fetch("/api/admin/registrations", {
+  const pendingCount = rows.filter((r) => !r.contacted).length;
+
+  async function patch(id: number, payload: { contacted?: boolean; archived?: boolean }) {
+    // Optimista: actualizamos en pantalla y revertimos si el server rechaza.
+    const prev = rows;
+    setRows((rs) =>
+      rs
+        .map((r) => (r.id === id ? { ...r, ...payload } : r))
+        .filter((r) => !(payload.archived === true && r.id === id)),
+    );
+
+    const res = await fetch("/api/admin/signups", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id, contacted: next })
+      body: JSON.stringify({ id, ...payload }),
     });
-    if (res.ok) {
-      setRows((rs) => rs.map(r => r.id === id ? { ...r, contacted: next } : r));
+
+    if (!res.ok) {
+      setRows(prev);
+      setError("No se pudo guardar el cambio.");
     }
   }
 
   function exportCSV() {
-    const csv = toCSV(filtered.map(r => ({
-      id: r.id,
-      created_at: r.created_at,
-      campaign: r.campaign_title ?? "",
-      full_name: r.full_name,
-      age: r.age ?? "",
-      contact: r.contact,
-      country: r.country,
-      availability: r.availability,
-      experience: r.experience,
-      desired_role: r.desired_role,
-      preferences: r.preferences,
-      lines_veils: r.lines_veils ?? "",
-      character_json_url: r.character_json_url ?? "",
-      contacted: r.contacted
-    })));
+    const csv = toCSV(
+      filtered.map((r) => ({
+        id: r.id,
+        fecha: r.created_at,
+        nombre: r.name,
+        contacto: r.contact,
+        experiencia: EXPERIENCE_LABEL[r.experience] ?? r.experience,
+        modalidad: r.mode,
+        disponibilidad: (r.availability ?? []).join(" | "),
+        temas: (r.themes ?? []).join(" | "),
+        perfil_test: (r.quiz_tags ?? []).join(" | "),
+        notas: r.notes ?? "",
+        origen: r.source ?? "",
+        contactado: r.contacted ? "si" : "no",
+      })),
+    );
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `inscriptos-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `postulaciones-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -93,75 +136,145 @@ export default function AdminClient() {
 
   return (
     <div className="space-y-4">
-      <Card className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
+      <Card className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row">
           <input
-            className="w-full sm:w-80 rounded-md border border-border/60 bg-bg px-4 py-3 text-base"
-            placeholder="Buscar (nombre, contacto, país, campaña)…"
+            className="w-full rounded-xl border border-border/60 bg-black/40 px-4 py-3 text-base sm:max-w-xs"
+            placeholder="Buscar por nombre, contacto, tema…"
             value={q}
-            onChange={(e)=>setQ(e.target.value)}
+            onChange={(e) => setQ(e.target.value)}
           />
-          <select
-            className="w-full sm:w-80 rounded-md border border-border/60 bg-bg px-4 py-3 text-base"
-            value={onlyOpen}
-            onChange={(e)=>setOnlyOpen(e.target.value as any)}
-            aria-label="Filtro"
-          >
-            <option value="all">Todos</option>
-            <option value="pending">Pendientes</option>
-            <option value="contacted">Contactados</option>
-          </select>
+          <div className="flex gap-2">
+            {(["all", "pending", "contacted"] as Filter[]).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                className={[
+                  "rounded-full border px-4 py-2 text-sm font-semibold transition",
+                  filter === f
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border/60 text-text/70 hover:border-primary/60",
+                ].join(" ")}
+              >
+                {f === "all" ? "Todos" : f === "pending" ? `Pendientes (${pendingCount})` : "Contactados"}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <Button type="button" onClick={exportCSV} variant="ghost">Exportar CSV</Button>
-          <Button type="button" onClick={load} variant="ghost">Refrescar</Button>
-          <Button type="button" onClick={logout} variant="ghost">Salir</Button>
+
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={exportCSV} variant="ghost">
+            Exportar CSV
+          </Button>
+          <Button type="button" onClick={() => void load()} variant="ghost">
+            Refrescar
+          </Button>
+          <Button type="button" onClick={logout} variant="ghost">
+            Salir
+          </Button>
         </div>
       </Card>
 
-      <Card>
-        <div className="flex items-center justify-between">
-          <div className="font-bold text-primary">Inscriptos ({filtered.length})</div>
-          {loading && <div className="text-sm text-text/70">Cargando…</div>}
-        </div>
+      {error ? (
+        <Card className="border-red-500/50 bg-red-500/10">
+          <div className="text-sm text-red-200">{error}</div>
+        </Card>
+      ) : null}
 
-        <div className="mt-3 overflow-auto rounded-xl border border-border/60">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-black/30">
-              <tr className="text-text/80">
-                <th className="p-2">Fecha</th>
-                <th className="p-2">Campaña</th>
-                <th className="p-2">Nombre</th>
-                <th className="p-2">Contacto</th>
-                <th className="p-2">País</th>
-                <th className="p-2">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border/50 hover:bg-black/20">
-                  <td className="p-2">{new Date(r.created_at).toLocaleString()}</td>
-                  <td className="p-2">{r.campaign_title ?? "—"}</td>
-                  <td className="p-2 break-words">{r.full_name}</td>
-                  <td className="p-2 break-words">{r.contact}</td>
-                  <td className="p-2">{r.country}</td>
-                  <td className="p-2">
-                    <button
-                      className={`rounded-full border px-3 py-1 text-xs ${r.contacted ? "border-primary/70 text-primary" : "border-border/60 text-text/70 hover:border-primary/70 hover:text-primary"}`}
-                      onClick={() => toggleContacted(r.id, !r.contacted)}
-                    >
-                      {r.contacted ? "Contactado" : "Pendiente"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td className="p-3 text-text/70" colSpan={6}>Sin resultados.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {loading ? <div className="text-sm text-text/70">Cargando…</div> : null}
+
+      {!loading && filtered.length === 0 && !error ? (
+        <Card className="text-center">
+          <div className="text-lg font-bold text-primary">Todavía no hay postulaciones</div>
+          <p className="mt-2 text-sm text-text/70">
+            Si acabás de publicar el sitio, probá vos mismo el formulario desde la home para confirmar que la
+            conexión con la base funciona.
+          </p>
+        </Card>
+      ) : null}
+
+      {/* Tarjetas en vez de tabla: en el celular una tabla de 8 columnas es ilegible. */}
+      <div className="grid gap-3">
+        {filtered.map((r) => (
+          <Card key={r.id} className={r.contacted ? "opacity-60" : undefined}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-base font-extrabold text-primary">{r.name}</span>
+                  <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-text/70">
+                    {EXPERIENCE_LABEL[r.experience] ?? r.experience}
+                  </span>
+                  <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-text/70">
+                    {r.mode}
+                  </span>
+                </div>
+                <div className="break-all text-sm text-text/90">{r.contact}</div>
+                <div className="text-xs text-text/50">
+                  {fmtDate(r.created_at)}
+                  {r.source ? ` · vía ${r.source}` : ""}
+                </div>
+              </div>
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void patch(r.id, { contacted: !r.contacted })}
+                  className={[
+                    "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                    r.contacted
+                      ? "border-primary/70 text-primary"
+                      : "border-border/60 text-text/70 hover:border-primary/70 hover:text-primary",
+                  ].join(" ")}
+                >
+                  {r.contacted ? "✓ Contactado" : "Marcar contactado"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpanded((v) => (v === r.id ? null : r.id))}
+                  className="rounded-full border border-border/60 px-3 py-1.5 text-xs text-text/70 hover:border-primary/70"
+                  aria-expanded={expanded === r.id}
+                >
+                  {expanded === r.id ? "−" : "+"}
+                </button>
+              </div>
+            </div>
+
+            {expanded === r.id ? (
+              <div className="mt-3 space-y-2 border-t border-border/50 pt-3 text-sm">
+                {r.availability?.length ? (
+                  <div>
+                    <span className="text-text/60">Disponible: </span>
+                    {r.availability.join(" · ")}
+                  </div>
+                ) : null}
+                {r.themes?.length ? (
+                  <div>
+                    <span className="text-text/60">Le interesa: </span>
+                    {r.themes.join(" · ")}
+                  </div>
+                ) : null}
+                {r.quiz_tags?.length ? (
+                  <div>
+                    <span className="text-text/60">Perfil del test: </span>
+                    {r.quiz_tags.join(" · ")}
+                  </div>
+                ) : null}
+                {r.notes ? (
+                  <div className="rounded-lg border border-border/60 bg-black/30 p-3 text-text/85">{r.notes}</div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void patch(r.id, { archived: true })}
+                  className="text-xs text-red-300/80 underline underline-offset-4 hover:text-red-200"
+                >
+                  Archivar
+                </button>
+              </div>
+            ) : null}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

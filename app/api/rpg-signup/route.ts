@@ -1,112 +1,161 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { db, isDbConfigured } from "@/lib/db";
+import { notifyDiscord, isWebhookConfigured } from "@/lib/notify";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
- * Submits the RPG signup form to Google Forms from the server (Netlify/Node),
- * avoiding browser CORS/iframe issues and handling multi-select fields correctly.
+ * Endpoint público de postulación.
  *
- * IMPORTANT:
- * - Google Forms expects checkbox values as repeated fields with the same entry.* name.
- * - We fetch the viewform once to extract hidden tokens (fbzx / fvv) for best compatibility.
+ * Reemplaza al POST directo contra Google Forms con iframe oculto, que fallaba
+ * silenciosamente: Google bloquea el framing de /formResponse, el evento load
+ * del iframe no dispara de forma confiable y con la partición de cookies de
+ * terceros de Chrome/Safari directamente no llega nada. El usuario veía
+ * "timeout" (o peor: "enviado" sin que se guardara nada).
+ *
+ * Ahora el navegador habla solo con nuestro propio servidor y recibe una
+ * respuesta real: si dice ok, está guardado de verdad.
  */
 
-const FORM_ID =
-  "1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const VIEWFORM_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/viewform`;
-const FORM_RESPONSE_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+const Schema = z.object({
+  name: z.string().trim().min(2, "Nombre muy corto").max(80),
+  contact: z.string().trim().min(3, "Contacto muy corto").max(120),
+  experience: z.enum(["nuevo", "poco", "bastante", "dm"]),
+  mode: z.enum(["online", "presencial", "indistinto"]),
+  availability: z.array(z.string().max(40)).max(12).default([]),
+  themes: z.array(z.string().max(40)).max(12).default([]),
+  notes: z.string().trim().max(600).optional().or(z.literal("")),
+  quizTags: z.array(z.string().max(30)).max(10).default([]),
+  source: z.string().trim().max(60).optional(),
 
-function extractHidden(html: string, name: string): string | null {
-  // matches: <input type="hidden" name="fbzx" value="...">
-  const re = new RegExp(
-    `<input[^>]+name=["']${name}["'][^>]*value=["']([^"']+)["'][^>]*>`,
-    "i"
-  );
-  const m = html.match(re);
-  return m ? m[1] : null;
-}
-
-function appendMaybe(params: URLSearchParams, key: string, value: unknown) {
-  if (value === undefined || value === null) return;
-  if (Array.isArray(value)) {
-    for (const v of value) {
-      if (v === undefined || v === null) continue;
-      const s = String(v).trim();
-      if (!s) continue;
-      params.append(key, s);
-    }
-    return;
-  }
-  const s = String(value).trim();
-  if (!s) return;
-  params.append(key, s);
-}
+  // Anti-bot (no se guardan)
+  website: z.string().max(200).optional(), // honeypot: debe venir vacío
+  elapsedMs: z.number().int().nonnegative().optional(),
+});
 
 export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({} as any));
-
-    // 1) Fetch viewform to extract tokens (helps for multi-page / stricter forms)
-    const viewResp = await fetch(VIEWFORM_URL, {
-      method: "GET",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; NetlifyFunctions/1.0; +https://www.netlify.com/)",
-      },
-      cache: "no-store",
-    });
-
-    const html = await viewResp.text();
-
-    const fbzx = extractHidden(html, "fbzx");
-    const fvv = extractHidden(html, "fvv") ?? "1";
-
-    // 2) Build payload. Expect body to be { [fieldName]: string | string[] }
-    const payload = new URLSearchParams();
-
-    // Hidden required-ish fields
-    appendMaybe(payload, "fvv", fvv);
-    if (fbzx) appendMaybe(payload, "fbzx", fbzx);
-
-    // Some forms are multi-page; pageHistory often helps. If not needed, Google ignores it.
-    appendMaybe(payload, "pageHistory", "0,1,2,3");
-
-    // 3) Append every incoming field as urlencoded. Repeats for arrays.
-    if (body && typeof body === "object") {
-      for (const [k, v] of Object.entries(body)) {
-        // skip any client-only keys
-        if (!k) continue;
-        appendMaybe(payload, k, v as any);
-      }
-    }
-
-    // Submit hint
-    appendMaybe(payload, "submit", "Submit");
-
-    // 4) POST to Google Forms
-    const resp = await fetch(FORM_RESPONSE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        "User-Agent":
-          "Mozilla/5.0 (compatible; NetlifyFunctions/1.0; +https://www.netlify.com/)",
-        // Referer sometimes helps
-        Referer: VIEWFORM_URL,
-      },
-      body: payload.toString(),
-      redirect: "manual",
-    });
-
-    // Google Forms often responds 200/302. Treat 2xx or 3xx as success.
-    const ok = resp.status >= 200 && resp.status < 400;
-
+  // ---- 1. Anti-abuso barato -------------------------------------------------
+  const ip = clientIp(req);
+  if (!rateLimit(`signup:${ip}`, 5, 60_000)) {
     return NextResponse.json(
-      { ok, status: resp.status },
-      { status: ok ? 200 : 502 }
-    );
-  } catch (err: any) {
-    return NextResponse.json(
-      { ok: false, error: String(err?.message ?? err) },
-      { status: 500 }
+      { ok: false, error: "Demasiados envíos seguidos. Esperá un minuto y probá de nuevo." },
+      { status: 429 },
     );
   }
+
+  const body = await req.json().catch(() => null);
+  const parsed = Schema.safeParse(body);
+
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return NextResponse.json(
+      { ok: false, error: first?.message ?? "Revisá los datos del formulario.", field: first?.path?.[0] },
+      { status: 400 },
+    );
+  }
+
+  const data = parsed.data;
+
+  // Honeypot: un campo invisible que sólo un bot completa.
+  // Respondemos ok para que el bot no aprenda que lo detectamos.
+  if (data.website && data.website.trim().length > 0) {
+    return NextResponse.json({ ok: true, id: null });
+  }
+
+  // Ningún humano llena este formulario en menos de 3 segundos.
+  if (typeof data.elapsedMs === "number" && data.elapsedMs < 3000) {
+    return NextResponse.json({ ok: true, id: null });
+  }
+
+  // ---- 2. ¿Hay algún backend configurado? ----------------------------------
+  const hasDb = isDbConfigured();
+  const hasWebhook = isWebhookConfigured();
+
+  if (!hasDb && !hasWebhook) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "NO_BACKEND",
+        error:
+          "El formulario todavía no está conectado. Configurá DATABASE_URL o DISCORD_WEBHOOK_URL en las variables de entorno.",
+      },
+      { status: 503 },
+    );
+  }
+
+  const notes = data.notes && data.notes.length > 0 ? data.notes : null;
+  let savedId: number | null = null;
+
+  // ---- 3. Guardar en Postgres ----------------------------------------------
+  if (hasDb) {
+    try {
+      const sql = db();
+
+      // Deduplicación: mismo contacto en la última hora = doble click o recarga.
+      const dupes = await sql<{ id: number }[]>`
+        select id
+        from signups
+        where lower(contact) = lower(${data.contact})
+          and created_at > now() - interval '1 hour'
+        limit 1
+      `;
+
+      if (dupes.length > 0) {
+        return NextResponse.json({ ok: true, id: dupes[0]!.id, duplicate: true });
+      }
+
+      const rows = await sql<{ id: number }[]>`
+        insert into signups (
+          name, contact, experience, mode, availability, themes, notes, quiz_tags, source
+        ) values (
+          ${data.name},
+          ${data.contact},
+          ${data.experience},
+          ${data.mode},
+          ${data.availability},
+          ${data.themes},
+          ${notes},
+          ${data.quizTags},
+          ${data.source ?? null}
+        )
+        returning id
+      `;
+
+      savedId = rows[0]?.id ?? null;
+    } catch (err) {
+      console.error("[api/rpg-signup] error de DB:", err);
+
+      // Si la DB falla pero hay webhook, no perdemos la postulación.
+      if (!hasWebhook) {
+        return NextResponse.json(
+          { ok: false, code: "DB_ERROR", error: "No pudimos guardar tu postulación. Probá de nuevo en un minuto." },
+          { status: 500 },
+        );
+      }
+    }
+  }
+
+  // ---- 4. Avisar por Discord (no bloquea el resultado) ----------------------
+  const notified = await notifyDiscord({
+    id: savedId,
+    name: data.name,
+    contact: data.contact,
+    mode: data.mode,
+    experience: data.experience,
+    availability: data.availability,
+    themes: data.themes,
+    notes,
+  });
+
+  if (savedId === null && !notified) {
+    return NextResponse.json(
+      { ok: false, code: "DELIVERY_FAILED", error: "No pudimos registrar tu postulación. Probá de nuevo." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, id: savedId });
 }

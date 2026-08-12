@@ -2,448 +2,361 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui";
+import { CONTACT, hasAnyContact } from "@/lib/site";
 
-// Importante: Google Forms es MUY estricto con los valores de <option value="...">.
-// Para que el envío no falle (o no se descarte silenciosamente), estos values deben
-// coincidir EXACTAMENTE con los del index.html original.
+/**
+ * Formulario de postulación.
+ *
+ * Qué cambió respecto de la versión anterior:
+ * - Ya no hace POST a Google Forms con un iframe oculto. Habla con /api/rpg-signup
+ *   y sólo dice "listo" cuando el servidor confirma que guardó.
+ * - Pasó de 4 pasos y 13 campos a 1 pantalla con 3 campos obligatorios.
+ *   Todo lo demás lo preguntás en la charla; acá sólo necesitás poder escribirle.
+ * - Honeypot + medición de tiempo para bots, sin captcha ni dependencias.
+ * - Si el backend falla, muestra tus contactos directos en vez de un error seco.
+ */
 
 type Props = {
   onDone?: () => void;
-  compact?: boolean;
+  /** Etiquetas que dejó el test de la home, para no perder ese contexto. */
+  quizTags?: string[];
+  /** De dónde vino la persona (útil para saber qué canal funciona). */
+  source?: string;
 };
 
-// Estos names vienen del index.html original (Google Forms)
-const F = {
-  email: "emailAddress",
-  name: "entry.592377339",
-  instagram: "entry.1145937670",
-  experience: "entry.1662985932",
-  rules: "entry.259189639",
-  theme: "entry.1977972677",
-  style: "entry.430852753", // range 1..5 (Combate <-> Rol)
-  playMode: "entry.2000145625",
-  freq: "entry.432896089",
-  // Disponibilidad está separada por día en el form original:
-  availabilityFri: "entry.876431454",
-  availabilitySat: "entry.2140878283",
-  availabilitySun: "entry.2065289993",
-  avoid: "entry.36863628",
-  notes: "entry.28201251",
-} as const;
+const EXPERIENCE = [
+  { value: "nuevo", label: "Nunca jugué", hint: "Bienvenido. En serio." },
+  { value: "poco", label: "Jugué alguna vez", hint: "Con eso alcanza." },
+  { value: "bastante", label: "Juego seguido", hint: "Ya tenés tus dados." },
+  { value: "dm", label: "Dirijo mesas", hint: "Necesitamos DMs." },
+] as const;
 
-const GOOGLE_FORM_ACTION =
-  "https://docs.google.com/forms/d/e/1FAIpQLScP2cSEbMdsVes4w8f1frB9hZSwP7xFsXjaY_Smm6AcGJsq3A/formResponse";
+const MODES = [
+  { value: "online", label: "Online" },
+  { value: "presencial", label: "Presencial" },
+  { value: "indistinto", label: "Me da igual" },
+] as const;
 
-const EXPERIENCES = [
-  "Curioso/a: Nunca jugué, pero vi Stranger Things (o Big Bang Theory) y siempre quise probar.",
-  "Espectador: Veo partidas en YouTube/Twitch (Critical Role, etc.) pero nunca jugué.",
-  "Principiante: Jugué alguna vez o hace mucho tiempo.",
-  "Veterano: Conozco las reglas y tengo mis propios dados.",
-];
-
-const RULES = [
-  { label: "Dungeons & Dragons 5e", value: "Dungeons & Dragons 5e: Fantasía clásica, muchas reglas, opciones y combate táctico. (El más famoso)" },
-  { label: "Sistema Ligero (Ej", value: "Sistema Ligero (Ej: Dungeons World): Pocas reglas, se aprende en 10 minutos, enfocado 100% en la historia y narración." },
-  { label: "Me da igual", value: "Me da igual: Me adapto a lo que elija la mayoría." },
+const AVAILABILITY = [
+  "Vie tarde",
+  "Vie noche",
+  "Sáb tarde",
+  "Sáb noche",
+  "Dom tarde",
+  "Dom noche",
+  "Entre semana",
 ];
 
 const THEMES = [
-  "Fantasía Heroica Clásica: Dragones, espadas y magia (Estilo El Señor de los Anillos o D&D Clásico).",
-  "Mundo Mágico / Académico: Varitas, escuelas de magia, misterios juveniles (Estilo Harry Potter).",
-  "Estilo Anime / Shonen: Exorcistas, cazadores de demonios, técnicas especiales y mucha acción (Estilo Jujutsu Kaisen o Demon Slayer).",
-  "Supervivencia Distópica: Un mundo cruel, competencias, rebelión (Estilo Los Juegos del Hambre).",
-  "Cyberpunk / Ciencia Ficción: Futuro distópico, hackers, naves espaciales (Estilo Blade Runner o Star Wars).",
+  "Fantasía épica",
+  "Terror",
+  "Anime / shonen",
+  "Sci-fi / cyberpunk",
+  "Misterio",
+  "Humor",
 ];
 
-const PLAY_MODES = [
-  "Presencial: Tengo disponibilidad para juntarme en una casa.",
-  "Virtual: Tengo PC/Celular, micrófono decente y conexión estable (Discord/Roll20).",
-  "Híbrido/Indistinto: Me adapto a cualquiera de las dos.",
-];
+type Status = "idle" | "sending" | "sent" | "error";
 
-const FREQUENCY = [
-  "Semanal: Una vez por semana (compromiso alto).",
-  "Quincenal: Cada dos semanas",
-  "Mensual: Una sesión larga una vez al mes",
-  "One-Shots: Solo partidas sueltas de vez en cuando, sin continuidad.",
-];
-
-// OJO: estos values deben coincidir con los que existen en el Google Form real.
-const AVAIL_OPTIONS_FRI = [
-  "Tarde 18 hs",
-  "Noche 20 hs",
-];
-const AVAIL_OPTIONS_SAT = [
-  "Tarde 18 hs",
-  "Noche 20 hs",
-];
-const AVAIL_OPTIONS_SUN = [
-  "Tarde 18 hs",
-  "Noche 20 hs",
-];
-
-function RpgSignupForm({ onDone, compact }: Props) {
-  const [step, setStep] = React.useState(0);
-  const [sending, setSending] = React.useState(false);
-  const [sent, setSent] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Se dispara cuando el iframe termina de cargar (después del POST cross-site).
-  const onIframeLoad = React.useCallback(() => {
-    if (!sending) return;
-    setSending(false);
-    setSent(true);
-    setError(null);
-    onDone?.();
-  }, [sending, onDone]);
-
-// Si por algún motivo el iframe no carga luego del submit (bloqueo/red), mostramos error.
-React.useEffect(() => {
-  if (!sending) return;
-  const t = window.setTimeout(() => {
-    setSending(false);
-    setSent(false);
-    setError("timeout");
-  }, 9000);
-  return () => window.clearTimeout(t);
-}, [sending]);
-
-
-  const goNext = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setStep((s) => Math.min(3, s + 1));
-    },
-    [setStep],
+function Chip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "rounded-full border px-4 py-2 text-sm font-semibold transition",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70",
+        active
+          ? "border-primary bg-primary/15 text-primary"
+          : "border-border/70 bg-black/30 text-text/80 hover:border-primary/60 hover:text-primary",
+      ].join(" ")}
+    >
+      {children}
+    </button>
   );
+}
 
-  const goBack = React.useCallback(() => {
-    setStep((s) => Math.max(0, s - 1));
-  }, []);
-
-  const onSubmit = React.useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      // Evita auto-enviar si por alguna razón se dispara submit antes del paso final.
-      setSent(false);
-      setError(null);
-      if (step < 3) {
-        e.preventDefault();
-        return;
-      }
-      setSending(true);
-    },
-    [step],
-  );
-
-  const dots = [0, 1, 2, 3];
+function FallbackContacts() {
+  if (!hasAnyContact()) return null;
 
   return (
-    <form
-      action={GOOGLE_FORM_ACTION}
-      method="POST"
-      target="hidden_iframe"
-      className="space-y-4"
-      onSubmit={onSubmit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-          // Evita submits accidentales al navegar pasos.
-          if (step < 3 && tag !== "textarea") e.preventDefault();
-        }
-      }}
-    >
-      <div className="flex items-center justify-center gap-2" aria-hidden>
-        {dots.map((d) => (
-          <span
-            key={d}
-            className={`h-2.5 w-2.5 rounded-full border border-border/60 ${
-              d === step ? "bg-primary" : "bg-transparent"
-            }`}
+    <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-black/30 p-4 text-sm">
+      <div className="font-semibold text-primary">Escribime directo:</div>
+      <div className="flex flex-wrap gap-2">
+        {CONTACT.instagram ? (
+          <a
+            className="rounded-full border border-border/70 px-3 py-1 hover:border-primary/70 hover:text-primary"
+            href={`https://instagram.com/${CONTACT.instagram.replace(/^@/, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Instagram
+          </a>
+        ) : null}
+        {CONTACT.discord ? (
+          <a
+            className="rounded-full border border-border/70 px-3 py-1 hover:border-primary/70 hover:text-primary"
+            href={CONTACT.discord}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Discord
+          </a>
+        ) : null}
+        {CONTACT.whatsapp ? (
+          <a
+            className="rounded-full border border-border/70 px-3 py-1 hover:border-primary/70 hover:text-primary"
+            href={`https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
+  const [name, setName] = React.useState("");
+  const [contact, setContact] = React.useState("");
+  const [experience, setExperience] = React.useState<string>("");
+  const [mode, setMode] = React.useState<string>("indistinto");
+  const [availability, setAvailability] = React.useState<string[]>([]);
+  const [themes, setThemes] = React.useState<string[]>([]);
+  const [notes, setNotes] = React.useState("");
+  const [honeypot, setHoneypot] = React.useState("");
+
+  const [status, setStatus] = React.useState<Status>("idle");
+  const [error, setError] = React.useState<string | null>(null);
+
+  // Marca de tiempo para detectar bots que completan al instante.
+  const startedAt = React.useRef<number>(Date.now());
+
+  const toggle = React.useCallback(
+    (setter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
+      setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+    },
+    [],
+  );
+
+  const canSubmit =
+    name.trim().length >= 2 &&
+    contact.trim().length >= 3 &&
+    experience !== "" &&
+    status !== "sending";
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    setStatus("sending");
+    setError(null);
+
+    try {
+      const res = await fetch("/api/rpg-signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          contact: contact.trim(),
+          experience,
+          mode,
+          availability,
+          themes,
+          notes: notes.trim(),
+          quizTags,
+          source: source ?? "web",
+          website: honeypot,
+          elapsedMs: Date.now() - startedAt.current,
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+
+      if (res.ok && data.ok) {
+        setStatus("sent");
+        onDone?.();
+        return;
+      }
+
+      setStatus("error");
+      setError(data.error ?? "No pudimos enviar tu postulación.");
+    } catch {
+      setStatus("error");
+      setError("Se cortó la conexión. Revisá tu internet y probá de nuevo.");
+    }
+  }
+
+  if (status === "sent") {
+    return (
+      <div className="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
+        <div className="text-4xl">🎲</div>
+        <div className="text-lg font-extrabold text-primary">¡Listo, {name.trim().split(" ")[0]}!</div>
+        <p className="text-sm text-text/80">
+          Ya tenemos tu postulación. Te escribimos a{" "}
+          <span className="font-semibold text-text">{contact}</span> cuando armemos el grupo que te calce.
+        </p>
+        <p className="text-xs text-text/60">Mientras tanto, probá el simulador para ir tomándole la mano.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="relative space-y-6" noValidate>
+      {/* Honeypot: invisible para personas, irresistible para bots. */}
+      <div aria-hidden="true" className="absolute h-0 w-0 overflow-hidden opacity-0">
+        <label htmlFor="website">No completar</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-text/80">
+            Tu nombre <span className="text-primary">*</span>
+          </span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            maxLength={80}
+            autoComplete="name"
+            placeholder="Cómo te llamamos"
+            className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
           />
-        ))}
+        </label>
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-text/80">
+            Dónde te escribimos <span className="text-primary">*</span>
+          </span>
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            required
+            maxLength={120}
+            placeholder="@instagram, usuario de Discord o mail"
+            className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
+          />
+        </label>
       </div>
 
-      {/* STEP 0 */}
-      <div className={step === 0 ? "space-y-3" : "hidden space-y-3"}>
-        <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">
-          I. IDENTIDAD
-        </h3>
-
-        <label className="block text-sm font-semibold text-primary">
-          Correo electrónico
-        </label>
-        <input
-          name={F.email}
-          type="email"
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-          placeholder="tu@email.com"
-        />
-
-        <label className="block text-sm font-semibold text-primary">
-          Nombre o apodo
-        </label>
-        <input
-          name={F.name}
-          type="text"
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-          placeholder="Ej: Rodolfo"
-        />
-
-        <label className="block text-sm font-semibold text-primary">
-          Contacto (Instagram)
-        </label>
-        <input
-          name={F.instagram}
-          type="text"
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-          placeholder="@tuusuario"
-        />
-
-        <label className="block text-sm font-semibold text-primary">
-          Nivel de experiencia
-        </label>
-        <select
-          name={F.experience}
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-        >
-          {EXPERIENCES.map((x) => (
-            <option key={x} value={x}>
-              {x}
-            </option>
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-text/80">
+          ¿Cuánto jugaste? <span className="text-primary">*</span>
+        </legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {EXPERIENCE.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setExperience(opt.value)}
+              aria-pressed={experience === opt.value}
+              className={[
+                "rounded-xl border px-4 py-3 text-left transition",
+                experience === opt.value
+                  ? "border-primary bg-primary/10"
+                  : "border-border/70 bg-black/30 hover:border-primary/60",
+              ].join(" ")}
+            >
+              <div className="text-sm font-bold text-text">{opt.label}</div>
+              <div className="text-xs text-text/60">{opt.hint}</div>
+            </button>
           ))}
-        </select>
-      </div>
-
-      {/* STEP 1 */}
-      <div className={step === 1 ? "space-y-3" : "hidden space-y-3"}>
-        <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">
-          II. PREFERENCIAS
-        </h3>
-
-        <label className="block text-sm font-semibold text-primary">
-          ¿Qué tipo de reglas preferís?
-        </label>
-        <select
-          name={F.rules}
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-        >
-          {RULES.map((r) => (
-            <option key={r.label} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="rounded-xl border border-border/60 bg-black/20 p-3">
-          <div className="text-sm font-semibold text-primary">
-            Temática (elegí tus favoritas)
-          </div>
-          <div className="mt-2 grid gap-2">
-            {THEMES.map((t) => (
-  <label key={t} className="flex gap-2 text-sm">
-    <input type="checkbox" name={F.theme} value={t} />
-    <span>{t}</span>
-  </label>
-))}
-          </div>
         </div>
+      </fieldset>
 
-        <label className="block text-sm font-semibold text-primary">
-          Estilo de juego
-        </label>
-        <div className="flex justify-between text-xs text-text/60">
-          <span>⚔️ Combate</span>
-          <span>🗣️ Rol</span>
-        </div>
-        <input
-          name={F.style}
-          type="range"
-          min={1}
-          max={5}
-          step={1}
-          defaultValue={3}
-          className="w-full"
-        />
-      </div>
-
-      {/* STEP 2 */}
-      <div className={step === 2 ? "space-y-3" : "hidden space-y-3"}>
-        <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">
-          III. LOGÍSTICA
-        </h3>
-
-        <label className="block text-sm font-semibold text-primary">
-          ¿Cómo preferís jugar?
-        </label>
-        <select
-          name={F.playMode}
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-        >
-          {PLAY_MODES.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-text/80">¿Online o presencial?</legend>
+        <div className="flex flex-wrap gap-2">
+          {MODES.map((m) => (
+            <Chip key={m.value} active={mode === m.value} onClick={() => setMode(m.value)}>
+              {m.label}
+            </Chip>
           ))}
-        </select>
-
-        <label className="block text-sm font-semibold text-primary">
-          Frecuencia de juego
-        </label>
-        <select
-          name={F.freq}
-          required
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-        >
-          {FREQUENCY.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
-
-        <div className="rounded-xl border border-border/60 bg-black/20 p-3">
-          <div className="text-sm font-semibold text-primary">Disponibilidad</div>
-          <div className="mt-2 grid gap-3 text-sm">
-            <div>
-              <div className="mb-1 font-semibold text-primary">Viernes</div>
-              <div className="grid gap-2">
-                {AVAIL_OPTIONS_FRI.map((v) => (
-                  <label key={v} className="flex gap-2">
-                    <input type="checkbox" name={F.availabilityFri} value={v} />
-                    <span>{v}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-1 font-semibold text-primary">Sábado</div>
-              <div className="grid gap-2">
-                {AVAIL_OPTIONS_SAT.map((v) => (
-                  <label key={v} className="flex gap-2">
-                    <input type="checkbox" name={F.availabilitySat} value={v} />
-                    <span>{v}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-1 font-semibold text-primary">Domingo</div>
-              <div className="grid gap-2">
-                {AVAIL_OPTIONS_SUN.map((v) => (
-                  <label key={v} className="flex gap-2">
-                    <input type="checkbox" name={F.availabilitySun} value={v} />
-                    <span>{v}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      </fieldset>
 
-      {/* STEP 3 */}
-      <div className={step === 3 ? "space-y-3" : "hidden space-y-3"}>
-        <h3 className="text-center text-sm font-semibold tracking-[0.22em] text-text/60">
-          IV. EL PACTO
-        </h3>
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-text/80">
+          ¿Cuándo podés? <span className="font-normal text-text/50">(las que quieras)</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {AVAILABILITY.map((a) => (
+            <Chip key={a} active={availability.includes(a)} onClick={() => toggle(setAvailability, a)}>
+              {a}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
 
-        <label className="block text-sm font-semibold text-primary">
-          Líneas y velos (temas a evitar)
-        </label>
-        <input
-          name={F.avoid}
-          type="text"
-          className="w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-          placeholder="Opcional"
-        />
+      <fieldset>
+        <legend className="mb-2 text-xs font-semibold text-text/80">
+          ¿Qué te tira más? <span className="font-normal text-text/50">(opcional)</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {THEMES.map((t) => (
+            <Chip key={t} active={themes.includes(t)} onClick={() => toggle(setThemes, t)}>
+              {t}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
 
-        <label className="block text-sm font-semibold text-primary">
-          Dudas o sugerencias
-        </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-text/80">
+          Algo que quieras aclarar <span className="font-normal text-text/50">(opcional)</span>
+        </span>
         <textarea
-          name={F.notes}
-          className="min-h-[110px] w-full rounded-md border border-border/60 bg-bg px-4 py-3"
-          placeholder="Opcional"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          maxLength={600}
+          placeholder="Temas que preferís evitar, horarios raros, si venís con un amigo…"
+          className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
         />
-      </div>
+      </label>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {status === "error" && error ? (
+        <div className="rounded-xl border border-red-500/50 bg-red-500/10 p-4">
+          <div className="text-sm font-semibold text-red-200">{error}</div>
+          <FallbackContacts />
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
         <Button
-          key="back"
-          type="button"
-          variant="ghost"
-          className="w-full sm:w-auto"
-          onClick={goBack}
-          disabled={step === 0 || sending}
+          type="submit"
+          disabled={!canSubmit}
+          className="w-full rounded-xl px-5 py-4 text-base font-extrabold"
         >
-          Atrás
+          {status === "sending" ? "Enviando…" : "Postularme"}
         </Button>
-
-        {step < 3 ? (
-          <Button
-            key="next"
-            type="button"
-            className="w-full sm:flex-1"
-            onClick={goNext}
-            disabled={sending}
-          >
-            Siguiente
-          </Button>
-        ) : (
-          <Button
-            key="submit"
-            type="submit"
-            className="w-full sm:flex-1 relative overflow-hidden rounded-2xl px-5 py-3 text-base font-extrabold tracking-wide shadow-lg shadow-black/40 ring-1 ring-white/10"
-            disabled={sending}
-          >
-            <span className="absolute inset-0 bg-gradient-to-r from-amber-500/90 via-fuchsia-500/80 to-cyan-500/80 opacity-90" />
-            <span className="relative">{sending ? "Enviando…" : "Enviar inscripción"}</span>
-          </Button>
-        )}
+        <p className="text-center text-xs text-text/50">
+          Sólo usamos tus datos para contactarte por la mesa. Nada de spam.
+        </p>
       </div>
-
-
-      {sent ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-          ✅ ¡Listo! Tu cuestionario se envió correctamente.
-        </div>
-      ) : null}
-      {error ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
-          ❌ No pudimos enviar tu respuesta. Probá de nuevo.
-        </div>
-      ) : null}
-
-      {compact ? null : (
-        <div className="text-xs text-text/60">
-          Este formulario envía a Google Forms (como el index original).
-        </div>
-      )}
-
-      {/* Iframe oculto para completar el POST cross-site sin navegar */}
-      <iframe
-        name="hidden_iframe"
-        className="hidden"
-        onLoad={onIframeLoad}
-        title="hidden_iframe"
-      />
     </form>
   );
 }
 
-// Export nombrado para compatibilidad con imports del tipo:
-//   import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
 export { RpgSignupForm };
-
-// Export default para compatibilidad con:
-//   import RpgSignupForm from "@/components/forms/rpg-signup-form";
 export default RpgSignupForm;

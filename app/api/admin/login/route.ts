@@ -1,18 +1,33 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { setAdminCookie } from "@/lib/auth";
+import { setAdminCookie, checkPassword, isPasswordConfigured } from "@/lib/auth";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
-const Schema = z.object({ password: z.string().min(1) });
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const Schema = z.object({ password: z.string().min(1).max(200) });
 
 export async function POST(req: Request) {
-  const pass = process.env.ADMIN_PASSWORD;
-  if (!pass) return NextResponse.json({ error: "ADMIN_PASSWORD no configurada" }, { status: 500 });
+  // Freno a la fuerza bruta: 8 intentos por IP cada 5 minutos.
+  if (!rateLimit(`login:${clientIp(req)}`, 8, 5 * 60_000)) {
+    return NextResponse.json({ error: "Demasiados intentos. Esperá unos minutos." }, { status: 429 });
+  }
+
+  if (!isPasswordConfigured()) {
+    return NextResponse.json(
+      { error: "ADMIN_PASSWORD no está configurada (mínimo 8 caracteres)." },
+      { status: 500 },
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = Schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
-  if (parsed.data.password !== pass) return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 });
+  if (!checkPassword(parsed.data.password)) {
+    return NextResponse.json({ error: "Contraseña incorrecta" }, { status: 401 });
+  }
 
   await setAdminCookie();
   return NextResponse.json({ ok: true });

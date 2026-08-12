@@ -1,6 +1,10 @@
+# El plugin oficial de Next.js se encarga del build, del directorio de salida
+# y de mapear las rutas de /app/api a funciones serverless.
+# No hay que declarar `publish`: la combinación de publish=".next" con
+# output:"standalone" era justamente lo que rompía los deploys.
+
 [build]
   command = "npm run build"
-  publish = ".next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

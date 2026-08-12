@@ -66,5 +66,3 @@ export const CAMPAIGNS: Campaign[] = [
     tags: ["misterio", "investigación", "terror suave"]
   }
 ];
-
-export const CAMPAIGN_EXAMPLES = CAMPAIGNS;

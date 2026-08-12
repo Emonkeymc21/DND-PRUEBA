@@ -2,7 +2,19 @@
 
 import * as React from "react";
 
-const MUSIC_VIDEO_ID = "wNKZkFs-hvE"; // del index original
+/**
+ * Música ambiente.
+ *
+ * Antes cargaba la API de iframes de YouTube (~100kb + varias conexiones) en
+ * TODAS las páginas, apenas entrabas, aunque nunca tocaras el botón. Ahora el
+ * script recién se descarga cuando la persona hace click. La home carga bastante
+ * más liviana y no se pelea con el autoplay del navegador.
+ *
+ * La pista está en data/videos.ts (MUSIC_VIDEO_ID) para que sea fácil cambiarla.
+ */
+
+import { MUSIC_VIDEO_ID } from "@/data/videos";
+
 const STORAGE_KEY = "mesa_music_playing";
 
 declare global {
@@ -17,62 +29,53 @@ function loadYouTubeIframeAPI(): Promise<void> {
     if (typeof window === "undefined") return resolve();
     if (window.YT?.Player) return resolve();
 
-    const existing = document.querySelector("script[data-yt-iframe]") as HTMLScriptElement | null;
-    if (existing) {
-      const t = window.setInterval(() => {
-        if (window.YT?.Player) {
-          window.clearInterval(t);
-          resolve();
-        }
-      }, 60);
-      return;
-    }
-
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    tag.async = true;
-    tag.dataset.ytIframe = "1";
-    document.head.appendChild(tag);
-
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      prev?.();
-      resolve();
-    };
-
-    const t = window.setInterval(() => {
+    const poll = window.setInterval(() => {
       if (window.YT?.Player) {
-        window.clearInterval(t);
+        window.clearInterval(poll);
         resolve();
       }
-    }, 100);
+    }, 80);
+
+    if (!document.querySelector("script[data-yt-iframe]")) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.async = true;
+      tag.dataset.ytIframe = "1";
+      document.head.appendChild(tag);
+
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        window.clearInterval(poll);
+        resolve();
+      };
+    }
+
+    // Si YouTube está bloqueado, no dejamos la promesa colgada para siempre.
+    window.setTimeout(() => {
+      window.clearInterval(poll);
+      resolve();
+    }, 8000);
   });
 }
 
 export function MusicControl() {
-  const [ready, setReady] = React.useState(false);
   const [playing, setPlaying] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
   const playerRef = React.useRef<any>(null);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
+  async function ensurePlayer(): Promise<boolean> {
+    if (playerRef.current) return true;
 
-    const shouldPlay = window.localStorage.getItem(STORAGE_KEY) === "1";
-    setPlaying(shouldPlay);
+    setLoading(true);
+    await loadYouTubeIframeAPI();
 
-    let mounted = true;
-    (async () => {
-      await loadYouTubeIframeAPI();
-      if (!mounted) return;
+    if (!window.YT?.Player) {
+      setLoading(false);
+      return false;
+    }
 
-      const host = document.getElementById("yt-music-host");
-      if (!host) return;
-
-      if (playerRef.current) {
-        setReady(true);
-        return;
-      }
-
+    await new Promise<void>((resolve) => {
       playerRef.current = new window.YT.Player("yt-music-host", {
         height: "0",
         width: "0",
@@ -81,42 +84,46 @@ export function MusicControl() {
         events: {
           onReady: () => {
             try {
-              playerRef.current.setVolume(70);
+              playerRef.current.setVolume(55);
             } catch {}
-            setReady(true);
-            if (shouldPlay) {
+            resolve();
+          },
+          onStateChange: (event: any) => {
+            if (event?.data === window.YT?.PlayerState?.ENDED) {
               try {
                 playerRef.current.playVideo();
               } catch {}
             }
           },
-          onStateChange: (event: any) => {
-            if (event?.data === window.YT.PlayerState.ENDED) {
-              try {
-                playerRef.current.playVideo();
-              } catch {}
-            }
-          }
-        }
+          onError: () => resolve(),
+        },
       });
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  function toggle() {
-    if (!ready || !playerRef.current) return;
-    setPlaying((p) => {
-      const next = !p;
-      window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      try {
-        if (next) playerRef.current.playVideo();
-        else playerRef.current.pauseVideo();
-      } catch {}
-      return next;
     });
+
+    setLoading(false);
+    return true;
+  }
+
+  async function toggle() {
+    if (playing) {
+      try {
+        playerRef.current?.pauseVideo();
+      } catch {}
+      setPlaying(false);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, "0");
+      } catch {}
+      return;
+    }
+
+    const ok = await ensurePlayer();
+    if (!ok) return;
+
+    try {
+      playerRef.current.playVideo();
+      setPlaying(true);
+      window.localStorage.setItem(STORAGE_KEY, "1");
+    } catch {}
   }
 
   return (
@@ -125,11 +132,12 @@ export function MusicControl() {
       <button
         type="button"
         onClick={toggle}
-        className="fixed right-4 top-4 z-[120] grid h-12 w-12 place-items-center rounded-full border border-primary/70 bg-black/60 text-xl text-primary shadow-[0_0_20px_rgba(0,0,0,.5)] backdrop-blur hover:bg-black/70 active:scale-95 md:right-8 md:top-8"
-        aria-label={playing ? "Silenciar música" : "Activar música"}
+        disabled={loading}
+        className="fixed right-3 top-20 z-[60] grid h-11 w-11 place-items-center rounded-full border border-border/70 bg-black/60 text-lg text-primary backdrop-blur transition hover:border-primary/70 active:scale-95 disabled:opacity-50 md:right-6 md:top-24"
+        aria-label={playing ? "Silenciar música ambiente" : "Activar música ambiente"}
         title={playing ? "Música: ON" : "Música: OFF"}
       >
-        {playing ? "🔊" : "🔇"}
+        {loading ? "…" : playing ? "🔊" : "🔇"}
       </button>
     </>
   );

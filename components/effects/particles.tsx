@@ -2,6 +2,14 @@
 
 import * as React from "react";
 
+/**
+ * Brasas flotando de fondo. Puramente decorativo, así que:
+ * - No se dibuja nada en móvil (donde cuesta caro y casi no se ve).
+ * - Respeta prefers-reduced-motion.
+ * - La animación vive en globals.css (@keyframes floatUp), no en styled-jsx,
+ *   para no inyectar un <style> por cada render.
+ */
+
 type Particle = {
   id: number;
   left: number;
@@ -11,23 +19,27 @@ type Particle = {
   opacity: number;
 };
 
-export function Particles({ count = 24 }: { count?: number }) {
+export function Particles({ count = 18 }: { count?: number }) {
   const [particles, setParticles] = React.useState<Particle[]>([]);
 
   React.useEffect(() => {
-    const coarse = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    if (coarse) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const isSmall = window.matchMedia?.("(max-width: 768px)")?.matches;
+    if (reduced || isSmall) return;
 
-    const next: Particle[] = Array.from({ length: count }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      size: 4 + Math.random() * 10,
-      duration: 8 + Math.random() * 14,
-      delay: Math.random() * 6,
-      opacity: 0.25 + Math.random() * 0.35
-    }));
-    setParticles(next);
+    setParticles(
+      Array.from({ length: count }).map((_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        size: 4 + Math.random() * 9,
+        duration: 10 + Math.random() * 14,
+        delay: Math.random() * 8,
+        opacity: 0.2 + Math.random() * 0.3,
+      })),
+    );
   }, [count]);
+
+  if (particles.length === 0) return null;
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-50 overflow-hidden">
@@ -40,21 +52,12 @@ export function Particles({ count = 24 }: { count?: number }) {
             width: `${p.size}px`,
             height: `${p.size}px`,
             bottom: "-10vh",
-            background: "rgba(212,175,55,1)",
+            background: "rgb(var(--primary))",
             opacity: p.opacity,
-            animation: `floatUp ${p.duration}s linear ${p.delay}s infinite`
+            animation: `floatUp ${p.duration}s linear ${p.delay}s infinite`,
           }}
         />
       ))}
-
-      <style jsx>{`
-        @keyframes floatUp {
-          0% { transform: translateY(110vh) scale(0.5); opacity: 0; }
-          15% { opacity: 1; }
-          80% { opacity: 0.5; }
-          100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

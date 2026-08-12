@@ -3,16 +3,22 @@ import { isAdminRequest } from "@/lib/auth";
 import AdminClient from "@/components/admin/admin-client";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Admin" };
+export const metadata = {
+  title: "Panel",
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminPage() {
-  const ok = await isAdminRequest();
-  if (!ok) redirect("/admin/login");
+  if (!(await isAdminRequest())) redirect("/admin/login");
 
   return (
     <div className="space-y-6">
-      <h1 className="text-4xl font-extrabold">Admin</h1>
-      <p className="max-w-3xl text-text/80">Ver inscriptos, filtrar, exportar CSV y marcar como contactado.</p>
+      <div>
+        <h1 className="title-caps text-3xl font-extrabold text-primary md:text-4xl">Postulaciones</h1>
+        <p className="mt-2 text-sm text-muted">
+          Filtrá, marcá contactados y exportá a CSV.
+        </p>
+      </div>
       <AdminClient />
     </div>
   );

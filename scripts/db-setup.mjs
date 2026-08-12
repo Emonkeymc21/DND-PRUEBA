@@ -4,17 +4,26 @@ import path from "node:path";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error("Falta DATABASE_URL en el entorno.");
+  console.error("\n❌ Falta DATABASE_URL.\n");
+  console.error("   1) Creá una base gratis en https://neon.tech");
+  console.error("   2) Copiá la connection string (la que dice '-pooler')");
+  console.error("   3) Pegala en .env.local como DATABASE_URL=...\n");
   process.exit(1);
 }
 
-const sql = postgres(url, { ssl: "require" });
+const sql = postgres(url, { ssl: "require", max: 1 });
 const schemaPath = path.join(process.cwd(), "db", "schema.sql");
-const schema = fs.readFileSync(schemaPath, "utf-8");
 
 try {
+  const schema = fs.readFileSync(schemaPath, "utf-8");
   await sql.unsafe(schema);
-  console.log("✅ Schema aplicado.");
+  console.log("✅ Schema aplicado correctamente.");
+
+  const [{ count }] = await sql`select count(*)::int as count from signups`;
+  console.log(`   Postulaciones actuales en la base: ${count}`);
+} catch (err) {
+  console.error("❌ Error aplicando el schema:", err?.message ?? err);
+  process.exitCode = 1;
 } finally {
   await sql.end({ timeout: 5 });
 }

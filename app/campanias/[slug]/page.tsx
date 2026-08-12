@@ -93,7 +93,7 @@ export default async function CampaignDetail({ params }: { params: any }) {
             <p className="text-sm text-text/80">
               Completá el cuestionario y te contactamos para coordinar.
             </p>
-            <RpgSignupForm compact />
+            <RpgSignupForm source={`campania-${campaign.slug}`} />
           </Card>
         </div>
       </div>
