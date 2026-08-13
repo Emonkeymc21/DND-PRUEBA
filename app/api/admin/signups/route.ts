@@ -13,7 +13,10 @@ export async function GET() {
 
   if (!isDbConfigured()) {
     return NextResponse.json(
-      { error: "Sin base de datos", detail: "No configuraste DATABASE_URL, así que no hay panel. Las postulaciones están llegando por Discord." },
+      {
+        error: "Sin base de datos",
+        detail: "No configuraste DATABASE_URL. Las postulaciones están llegando por Discord.",
+      },
       { status: 503 },
     );
   }
@@ -22,10 +25,12 @@ export async function GET() {
     const sql = db();
     const rows = await sql`
       select
-        id, created_at, name, contact, experience, mode,
-        availability, themes, notes, quiz_tags, traits, contacted, archived, source
+        id, created_at, nombre, contacto, experiencia, sistema, tematicas,
+        modalidad, frecuencia, disponibilidad, lineas_rojas, notas,
+        ml_tags, ml_vector, ml_archetype, ml_campaign,
+        contactado, archivado, source
       from signups
-      where archived = false
+      where archivado = false
       order by created_at desc
       limit 500
     `;
@@ -38,8 +43,8 @@ export async function GET() {
 
 const PatchSchema = z.object({
   id: z.number().int().positive(),
-  contacted: z.boolean().optional(),
-  archived: z.boolean().optional(),
+  contactado: z.boolean().optional(),
+  archivado: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -53,18 +58,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { id, contacted, archived } = parsed.data;
-  if (contacted === undefined && archived === undefined) {
+  const { id, contactado, archivado } = parsed.data;
+  if (contactado === undefined && archivado === undefined) {
     return NextResponse.json({ error: "Nada para actualizar" }, { status: 400 });
   }
 
   try {
     const sql = db();
-    if (contacted !== undefined) {
-      await sql`update signups set contacted = ${contacted} where id = ${id}`;
+    if (contactado !== undefined) {
+      await sql`update signups set contactado = ${contactado} where id = ${id}`;
     }
-    if (archived !== undefined) {
-      await sql`update signups set archived = ${archived} where id = ${id}`;
+    if (archivado !== undefined) {
+      await sql`update signups set archivado = ${archivado} where id = ${id}`;
     }
     return NextResponse.json({ ok: true });
   } catch (err) {

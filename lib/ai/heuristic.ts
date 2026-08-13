@@ -1,5 +1,3 @@
-import type { TraitDelta } from "@/lib/traits";
-
 /**
  * Evaluador de respaldo, 100% determinista y sin red.
  *
@@ -12,85 +10,12 @@ import type { TraitDelta } from "@/lib/traits";
  * Todo en español rioplatense, que es como escribe la gente que usa el sitio.
  */
 
-type Signal = {
-  key: keyof TraitDelta;
-  amount: number;
-  words: string[];
-};
-
-/** Cada grupo mueve un eje. Las palabras van sin tildes: el texto se normaliza. */
-const SIGNALS: Signal[] = [
-  // --- Combate ---
-  {
-    key: "combate",
-    amount: 11,
-    words: [
-      "atac", "peleo", "pelear", "golpe", "espada", "hacha", "arco", "flecha",
-      "disparo", "mato", "matar", "cortar", "embest", "patada", "puno", "puno",
-      "lucho", "luchar", "arremet", "degoll", "apunalar", "apunal", "hiero",
-    ],
-  },
-  // --- Rol / narrativa ---
-  {
-    key: "combate",
-    amount: -11,
-    words: [
-      "hablo", "hablar", "converso", "pregunto", "negoci", "convenzo", "convencer",
-      "persuad", "escucho", "saludo", "presento", "cuento", "explico", "propongo",
-      "miento", "mentir", "seduzco", "calmo", "tranquiliz", "razono", "dialog",
-    ],
-  },
-  // --- Caótico ---
-  {
-    key: "ley",
-    amount: -10,
-    words: [
-      "robo", "robar", "escapo", "huyo", "prendo fuego", "quemo", "rompo",
-      "ignoro", "traiciono", "improviso", "sin pensar", "me arriesgo", "apuesto",
-      "hago lo que quiero", "a lo loco", "de una", "al toque", "sabotaje",
-    ],
-  },
-  // --- Legal ---
-  {
-    key: "ley",
-    amount: 10,
-    words: [
-      "plan", "planeo", "organizo", "ordeno", "respeto", "cumplo", "acuerdo",
-      "trato", "contrato", "pacto", "aviso", "consulto", "reglas", "protocolo",
-      "con cuidado", "metodico", "paso a paso", "primero verifico",
-    ],
-  },
-  // --- Equipo ---
-  {
-    key: "equipo",
-    amount: 12,
-    words: [
-      "nosotros", "equipo", "grupo", "party", "companero", "companera", "juntos",
-      "ayudo", "ayudar", "cubro", "protejo", "aviso al grupo", "les digo",
-      "coordino", "curo", "defiendo a", "espero al", "comparto",
-    ],
-  },
-  // --- Lobo solitario ---
-  {
-    key: "equipo",
-    amount: -9,
-    words: [
-      "solo", "sola", "por mi cuenta", "yo me encargo", "me adelanto",
-      "sin avisar", "a escondidas", "me separo", "no les digo", "yo solo",
-    ],
-  },
-  // --- Creatividad ---
-  {
-    key: "creatividad",
-    amount: 13,
-    words: [
-      "uso el", "combino", "improviso", "invento", "distraigo", "trampa",
-      "disfraz", "finjo", "simulo", "aprovecho", "en vez de", "se me ocurre",
-      "y si", "ato", "empujo", "tiro la", "hago pasar", "desvio", "palanca",
-      "cuerda", "antorcha", "aceite", "polvo", "espejo",
-    ],
-  },
-];
+/**
+ * NOTA: la puntuación del perfil ya NO vive acá. Ahora la hace el motor de ML
+ * (lib/ml/vectorize.ts) con k-NN sobre un corpus etiquetado, que es bastante
+ * mejor que contar palabras. Este módulo quedó sólo para lo que sigue siendo
+ * su trabajo: narrar y fijar una dificultad cuando no hay API key de IA.
+ */
 
 /** Saca tildes y pasa a minúscula para comparar sin sorpresas. */
 export function normalize(text: string): string {
@@ -101,7 +26,6 @@ export function normalize(text: string): string {
 }
 
 export type HeuristicResult = {
-  delta: TraitDelta;
   narration: string;
   /** Dificultad sugerida para la tirada, 8..18. */
   dc: number;
@@ -155,21 +79,6 @@ function pick<T>(arr: T[], seed: string): T {
 
 export function evaluateHeuristic(input: string, sceneTitle: string): HeuristicResult {
   const t = normalize(input);
-  const delta: TraitDelta = {};
-
-  for (const sig of SIGNALS) {
-    const hits = sig.words.filter((w) => t.includes(w)).length;
-    if (hits === 0) continue;
-    // Tope por grupo: que repetir una palabra 8 veces no dispare el eje.
-    const amount = sig.amount * Math.min(hits, 2);
-    delta[sig.key] = (delta[sig.key] ?? 0) + amount;
-  }
-
-  // Respuestas largas y elaboradas indican involucramiento con la ficción.
-  const words = t.split(/\s+/).filter(Boolean).length;
-  if (words >= 25) delta.creatividad = (delta.creatividad ?? 0) + 6;
-  else if (words <= 3) delta.creatividad = (delta.creatividad ?? 0) - 4;
-
   const kind = detectKind(t);
 
   // Dificultad: lo audaz cuesta más, lo cauto menos.
@@ -177,7 +86,6 @@ export function evaluateHeuristic(input: string, sceneTitle: string): HeuristicR
     kind === "astucia" ? 14 : kind === "combate" ? 13 : kind === "social" ? 12 : kind === "cautela" ? 10 : 12;
 
   return {
-    delta,
     narration: pick(NARRATIONS[kind], input + sceneTitle),
     dc,
     kind,

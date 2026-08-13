@@ -1,27 +1,34 @@
 "use client";
 
 import * as React from "react";
-import { D20, type RollResult } from "@/components/dice/d20";
-import type { TraitDelta } from "@/lib/traits";
+import { Dice3D, type RollResult } from "@/components/dice/dice3d";
+import { Typewriter } from "@/components/simulator/narration";
+import type { Vector } from "@/data/ml-simulation-dataset";
+import type { MlArchetype, MlCampaign } from "@/components/simulator/profile-panel";
 
 /**
- * Entrada de texto libre del simulador.
+ * Turno de texto libre.
  *
- * Flujo de un turno:
- *   1. La persona escribe lo que quiere hacer.
- *   2. El servidor (IA o heurístico) narra el intento y fija una dificultad.
- *   3. Aparece el d20: la tirada decide si el intento sale o no.
- *   4. El resultado se manda al simulador, que aplica el perfil y sigue.
+ * Encadena las dos capas del sistema:
+ *   1. /api/ml/classify  → vectoriza el texto, actualiza el perfil, rankea campañas.
+ *   2. /api/simulator/turn → narración adaptada (LLM si hay key, heurístico si no).
  *
- * La narración nunca dice "lo lográs": eso lo define el dado. Así el texto
- * libre no se convierte en "escribo que gano y gano".
+ * Van en paralelo con Promise.all: son independientes y así el turno tarda lo
+ * que tarda la más lenta, no la suma de las dos.
+ *
+ * El dado decide el desenlace. La narración describe el INTENTO: si dijera
+ * "lo lográs", escribir "gano" sería ganar.
  */
 
-type TurnResponse = {
+export type TurnPayload = {
+  action: string;
   narration: string;
-  delta: TraitDelta;
-  dc: number;
-  tag: string;
+  roll: RollResult;
+  turnVector: Vector | null;
+  profile: Vector;
+  archetype: MlArchetype | null;
+  campaigns: MlCampaign[];
+  confidence: number | null;
   ai: boolean;
 };
 
@@ -30,31 +37,52 @@ type Props = {
   sceneText: string;
   theme: string;
   history: string[];
-  onResolved: (payload: {
-    action: string;
-    narration: string;
-    delta: TraitDelta;
-    roll: RollResult;
-    ai: boolean;
-  }) => void;
+  vectorHistory: Vector[];
+  experiencia?: string | null;
+  lineasRojas?: string[];
+  onResolved: (payload: TurnPayload) => void;
+};
+
+type ClassifyResponse = {
+  turnVector: Vector | null;
+  profile: Vector;
+  confidence: number | null;
+  archetype: MlArchetype | null;
+  campaigns: MlCampaign[];
+};
+
+type TurnResponse = {
+  narration: string;
+  dc: number;
+  tag: string;
+  ai: boolean;
 };
 
 type Stage =
   | { name: "input" }
   | { name: "thinking" }
-  | { name: "roll"; turn: TurnResponse; action: string }
+  | { name: "roll"; turn: TurnResponse; ml: ClassifyResponse; action: string }
   | { name: "error"; message: string };
 
 const MAX = 400;
 
 const SUGERENCIAS = [
-  "Reviso el lugar antes de moverme",
+  "Reviso todo antes de moverme",
   "Le hablo y trato de ganar tiempo",
   "Uso lo que tengo a mano de forma inesperada",
   "Aviso al grupo y vamos juntos",
 ];
 
-export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }: Props) {
+export function FreeAction({
+  sceneTitle,
+  sceneText,
+  theme,
+  history,
+  vectorHistory,
+  experiencia,
+  lineasRojas = [],
+  onResolved,
+}: Props) {
   const [text, setText] = React.useState("");
   const [stage, setStage] = React.useState<Stage>({ name: "input" });
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -67,35 +95,59 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
       setStage({ name: "thinking" });
 
       try {
-        const res = await fetch("/api/simulator/turn", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            action: clean,
-            sceneTitle,
-            sceneText,
-            theme,
-            history: history.slice(-6),
+        const [mlRes, turnRes] = await Promise.all([
+          fetch("/api/ml/classify", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              text: clean,
+              history: vectorHistory,
+              experiencia: experiencia ?? null,
+              lineasRojas,
+            }),
           }),
-        });
+          fetch("/api/simulator/turn", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              action: clean,
+              sceneTitle,
+              sceneText,
+              theme,
+              history: history.slice(-6),
+            }),
+          }),
+        ]);
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          setStage({ name: "error", message: data?.error ?? "No pude procesar tu acción." });
+        if (!turnRes.ok) {
+          const err = await turnRes.json().catch(() => ({}));
+          setStage({ name: "error", message: err?.error ?? "No pude procesar tu acción." });
           return;
         }
 
-        setStage({ name: "roll", turn: data as TurnResponse, action: clean });
+        const turn = (await turnRes.json()) as TurnResponse;
+
+        // Si el clasificador falla, el turno igual sigue: el perfil es un extra,
+        // no un requisito para jugar.
+        const ml: ClassifyResponse = mlRes.ok
+          ? ((await mlRes.json()) as ClassifyResponse)
+          : {
+              turnVector: null,
+              profile: vectorHistory[vectorHistory.length - 1] ?? ({} as Vector),
+              confidence: null,
+              archetype: null,
+              campaigns: [],
+            };
+
+        setStage({ name: "roll", turn, ml, action: clean });
       } catch {
         setStage({ name: "error", message: "Se cortó la conexión. Probá de nuevo." });
       }
     },
-    [sceneTitle, sceneText, theme, history],
+    [sceneTitle, sceneText, theme, history, vectorHistory, experiencia, lineasRojas],
   );
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    // Enter envía, Shift+Enter hace salto de línea.
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void send(text);
@@ -104,15 +156,24 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
 
   function handleRoll(roll: RollResult) {
     if (stage.name !== "roll") return;
-    const { turn, action } = stage;
+    const { turn, ml, action } = stage;
 
-    onResolved({ action, narration: turn.narration, delta: turn.delta, roll, ai: turn.ai });
+    onResolved({
+      action,
+      narration: turn.narration,
+      roll,
+      turnVector: ml.turnVector,
+      profile: ml.profile,
+      archetype: ml.archetype,
+      campaigns: ml.campaigns,
+      confidence: ml.confidence,
+      ai: turn.ai,
+    });
 
     setText("");
     setStage({ name: "input" });
   }
 
-  // --- Pensando ---
   if (stage.name === "thinking") {
     return (
       <div className="rounded-2xl border border-border/70 bg-surface/60 p-6">
@@ -132,7 +193,6 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
     );
   }
 
-  // --- Narración + tirada ---
   if (stage.name === "roll") {
     return (
       <div className="space-y-4 rounded-2xl border border-primary/35 bg-surface/60 p-5">
@@ -142,26 +202,28 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
             {!stage.turn.ai ? (
               <span
                 className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] text-muted"
-                title="Sin API key configurada: narración generada por el evaluador local"
+                title="Sin API key de IA: narración del evaluador local"
               >
                 modo local
               </span>
             ) : null}
           </div>
-          <p className="text-[15px] leading-relaxed text-text/90">{stage.turn.narration}</p>
+          <Typewriter
+            text={stage.turn.narration}
+            className="text-[15px] leading-relaxed text-text/90"
+          />
         </div>
 
         <div className="border-t border-border/60 pt-4">
-          <p className="mb-3 text-center text-sm text-muted">
-            Tirá para ver si te sale.
-          </p>
-          <D20 dc={stage.turn.dc} onResult={handleRoll} />
+          <p className="mb-2 text-center text-sm text-muted">Tirá para ver si te sale.</p>
+          <div className="flex justify-center">
+            <Dice3D dc={stage.turn.dc} onResult={handleRoll} size={200} />
+          </div>
         </div>
       </div>
     );
   }
 
-  // --- Error ---
   if (stage.name === "error") {
     return (
       <div className="space-y-3 rounded-2xl border border-ember/50 bg-ember/10 p-5">
@@ -177,7 +239,6 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
     );
   }
 
-  // --- Entrada ---
   const left = MAX - text.length;
 
   return (
@@ -187,7 +248,7 @@ export function FreeAction({ sceneTitle, sceneText, theme, history, onResolved }
           O escribí lo que se te ocurra
         </label>
         <p className="mt-1 text-xs text-muted">
-          No hay respuestas incorrectas. Probá algo que no esté en la lista.
+          No hay respuestas incorrectas. El modelo aprende de cómo resolvés.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Badge, Button, Card } from "@/components/ui";
 import { VIDEOS } from "@/data/videos";
 import RpgSignupForm from "@/components/forms/rpg-signup-form";
-import { D20, type RollResult } from "@/components/dice/d20";
+import { Dice3D, type RollResult } from "@/components/dice/dice3d";
 
 type ThemeCard = {
   title: string;
@@ -309,11 +309,9 @@ function QuizContent({ onSignup }: { onSignup: (tags: string[]) => void }) {
             <div className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-primary">
               Tu primera tirada
             </div>
-            <D20
-              dc={10}
-              label="Tirar por el destino"
-              onResult={(r) => setFate(r)}
-            />
+            <div className="flex justify-center">
+              <Dice3D dc={10} size={180} label="Tirar por el destino" onResult={(r) => setFate(r)} />
+            </div>
             {fate ? (
               <p className="mt-1 text-center text-sm text-text/85">
                 {fate.crit

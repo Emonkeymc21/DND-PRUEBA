@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Card, Badge } from "@/components/ui";
-import { D20 } from "@/components/dice/d20";
+import { Dice3D } from "@/components/dice/dice3d";
 
 /**
  * Bestiario en vivo del SRD 5.1, vía nuestro proxy cacheado (/api/dnd5e).
@@ -245,12 +245,15 @@ export default function BestiaryClient() {
                 <div className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-primary">
                   Probá tu suerte contra {selected.name}
                 </div>
-                <D20
-                  key={selected.index}
-                  dc={armorClass(selected)!}
-                  mod={5}
-                  label={`Atacar (CA ${armorClass(selected)})`}
-                />
+                <div className="flex justify-center">
+                  <Dice3D
+                    key={selected.index}
+                    dc={armorClass(selected)!}
+                    mod={5}
+                    size={180}
+                    label={`Atacar (CA ${armorClass(selected)})`}
+                  />
+                </div>
               </div>
             ) : null}
           </Card>

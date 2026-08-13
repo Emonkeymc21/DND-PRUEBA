@@ -3,63 +3,55 @@
 import * as React from "react";
 import { Button } from "@/components/ui";
 import { CONTACT, hasAnyContact } from "@/lib/site";
-import type { Traits } from "@/lib/traits";
-
-/** Misma clave que usa el simulador al terminar una partida. */
-const PROFILE_STORAGE_KEY = "mesa_perfil_tags";
-const PROFILE_TRAITS_KEY = "mesa_perfil_traits";
+import {
+  EXPERIENCIA,
+  SISTEMA,
+  TEMATICA,
+  MODALIDAD,
+  FRECUENCIA,
+  DISPONIBILIDAD,
+  LINEAS_ROJAS,
+  type ExperienciaValue,
+  type SistemaValue,
+  type TematicaValue,
+  type ModalidadValue,
+  type FrecuenciaValue,
+  type DisponibilidadValue,
+  type LineaRojaValue,
+  type Vector,
+} from "@/data/ml-simulation-dataset";
 
 /**
  * Formulario de postulación.
  *
- * Qué cambió respecto de la versión anterior:
- * - Ya no hace POST a Google Forms con un iframe oculto. Habla con /api/rpg-signup
- *   y sólo dice "listo" cuando el servidor confirma que guardó.
- * - Pasó de 4 pasos y 13 campos a 1 pantalla con 3 campos obligatorios.
- *   Todo lo demás lo preguntás en la charla; acá sólo necesitás poder escribirle.
- * - Honeypot + medición de tiempo para bots, sin captcha ni dependencias.
- * - Si el backend falla, muestra tus contactos directos en vez de un error seco.
+ * Los valores salen de data/ml-simulation-dataset.ts, la misma fuente que usa
+ * el motor de ML y el esquema de la base. Si mañana agregás una temática, la
+ * agregás en un solo lugar y aparece acá, en el validador y en el recomendador.
+ *
+ * Sigue siendo una sola pantalla: lo obligatorio son nombre y contacto. Todo lo
+ * demás tiene un valor por defecto razonable, así que se puede mandar en 15
+ * segundos y afinar en la charla.
  */
+
+const PROFILE_TAGS_KEY = "mesa_perfil_tags";
+const PROFILE_VECTOR_KEY = "mesa_perfil_vector";
+const PROFILE_ML_KEY = "mesa_perfil_ml";
+
+type MlProfile = {
+  archetype?: { id: string; name: string; suggestedClass: string } | null;
+  campaign?: { id: string; name: string; score: number } | null;
+  inferredFields?: {
+    sistema: SistemaValue;
+    tematica: TematicaValue;
+    frecuencia: FrecuenciaValue;
+  } | null;
+};
 
 type Props = {
   onDone?: () => void;
-  /** Etiquetas que dejó el test de la home, para no perder ese contexto. */
   quizTags?: string[];
-  /** De dónde vino la persona (útil para saber qué canal funciona). */
   source?: string;
 };
-
-const EXPERIENCE = [
-  { value: "nuevo", label: "Nunca jugué", hint: "Bienvenido. En serio." },
-  { value: "poco", label: "Jugué alguna vez", hint: "Con eso alcanza." },
-  { value: "bastante", label: "Juego seguido", hint: "Ya tenés tus dados." },
-  { value: "dm", label: "Dirijo mesas", hint: "Necesitamos DMs." },
-] as const;
-
-const MODES = [
-  { value: "online", label: "Online" },
-  { value: "presencial", label: "Presencial" },
-  { value: "indistinto", label: "Me da igual" },
-] as const;
-
-const AVAILABILITY = [
-  "Vie tarde",
-  "Vie noche",
-  "Sáb tarde",
-  "Sáb noche",
-  "Dom tarde",
-  "Dom noche",
-  "Entre semana",
-];
-
-const THEMES = [
-  "Fantasía épica",
-  "Terror",
-  "Anime / shonen",
-  "Sci-fi / cyberpunk",
-  "Misterio",
-  "Humor",
-];
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -67,11 +59,18 @@ function Chip({
   active,
   children,
   onClick,
+  tone = "gold",
 }: {
   active: boolean;
   children: React.ReactNode;
   onClick: () => void;
+  tone?: "gold" | "ember";
 }) {
+  const activeCls =
+    tone === "ember"
+      ? "border-ember bg-ember/15 text-ember"
+      : "border-primary bg-primary/15 text-primary";
+
   return (
     <button
       type="button"
@@ -79,10 +78,9 @@ function Chip({
       aria-pressed={active}
       className={[
         "rounded-full border px-4 py-2 text-sm font-semibold transition",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70",
         active
-          ? "border-primary bg-primary/15 text-primary"
-          : "border-border/70 bg-black/30 text-text/80 hover:border-primary/60 hover:text-primary",
+          ? activeCls
+          : "border-border/70 bg-surface/60 text-text/80 hover:border-primary/60 hover:text-primary",
       ].join(" ")}
     >
       {children}
@@ -90,11 +88,33 @@ function Chip({
   );
 }
 
+function Field({
+  label,
+  required,
+  hint,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+        {label} {required ? <span className="text-primary">*</span> : null}
+      </legend>
+      {children}
+      {hint ? <p className="mt-1.5 text-[11px] text-muted">{hint}</p> : null}
+    </fieldset>
+  );
+}
+
 function FallbackContacts() {
   if (!hasAnyContact()) return null;
 
   return (
-    <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-black/30 p-4 text-sm">
+    <div className="mt-3 space-y-2 rounded-xl border border-border/70 bg-surface/60 p-4 text-sm">
       <div className="font-semibold text-primary">Escribime directo:</div>
       <div className="flex flex-wrap gap-2">
         {CONTACT.instagram ? (
@@ -132,53 +152,71 @@ function FallbackContacts() {
   );
 }
 
-function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
-  const [name, setName] = React.useState("");
-  const [contact, setContact] = React.useState("");
-  const [experience, setExperience] = React.useState<string>("");
-  const [mode, setMode] = React.useState<string>("indistinto");
-  const [availability, setAvailability] = React.useState<string[]>([]);
-  const [themes, setThemes] = React.useState<string[]>([]);
-  const [notes, setNotes] = React.useState("");
+export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
+  // --- Campos del formulario ---
+  const [nombre, setNombre] = React.useState("");
+  const [contacto, setContacto] = React.useState("");
+  const [experiencia, setExperiencia] = React.useState<ExperienciaValue | "">("");
+  const [sistema, setSistema] = React.useState<SistemaValue>("indistinto");
+  const [tematicas, setTematicas] = React.useState<TematicaValue[]>([]);
+  const [modalidad, setModalidad] = React.useState<ModalidadValue>("indistinto");
+  const [frecuencia, setFrecuencia] = React.useState<FrecuenciaValue>("quincenal");
+  const [disponibilidad, setDisponibilidad] = React.useState<DisponibilidadValue[]>([]);
+  const [lineasRojas, setLineasRojas] = React.useState<LineaRojaValue[]>([]);
+  const [notas, setNotas] = React.useState("");
   const [honeypot, setHoneypot] = React.useState("");
 
   const [status, setStatus] = React.useState<Status>("idle");
   const [error, setError] = React.useState<string | null>(null);
 
-  // Perfil que dejó el simulador. Si la persona jugó y vino a postularse,
-  // el resultado viaja con la postulación sin que tenga que reescribir nada.
-  const [simTags, setSimTags] = React.useState<string[]>([]);
-  const [simTraits, setSimTraits] = React.useState<Traits | null>(null);
+  // --- Perfil que dejó el simulador ---
+  const [mlTags, setMlTags] = React.useState<string[]>([]);
+  const [mlVector, setMlVector] = React.useState<Vector | null>(null);
+  const [mlProfile, setMlProfile] = React.useState<MlProfile | null>(null);
+  const [autofilled, setAutofilled] = React.useState(false);
+
+  const startedAt = React.useRef<number>(Date.now());
 
   React.useEffect(() => {
     try {
-      const rawTags = window.sessionStorage.getItem(PROFILE_STORAGE_KEY);
+      const rawTags = window.sessionStorage.getItem(PROFILE_TAGS_KEY);
       if (rawTags) {
         const parsed: unknown = JSON.parse(rawTags);
-        if (Array.isArray(parsed)) setSimTags(parsed.filter((t): t is string => typeof t === "string"));
+        if (Array.isArray(parsed)) {
+          setMlTags(parsed.filter((t): t is string => typeof t === "string"));
+        }
       }
 
-      const rawTraits = window.sessionStorage.getItem(PROFILE_TRAITS_KEY);
-      if (rawTraits) setSimTraits(JSON.parse(rawTraits) as Traits);
+      const rawVector = window.sessionStorage.getItem(PROFILE_VECTOR_KEY);
+      if (rawVector) setMlVector(JSON.parse(rawVector) as Vector);
+
+      const rawMl = window.sessionStorage.getItem(PROFILE_ML_KEY);
+      if (rawMl) {
+        const profile = JSON.parse(rawMl) as MlProfile;
+        setMlProfile(profile);
+
+        // Precompletamos con lo que infirió el modelo. La persona lo puede
+        // cambiar: es una sugerencia, no una decisión tomada por ella.
+        if (profile.inferredFields) {
+          setSistema(profile.inferredFields.sistema);
+          setFrecuencia(profile.inferredFields.frecuencia);
+          setTematicas([profile.inferredFields.tematica]);
+          setAutofilled(true);
+        }
+      }
     } catch {
       // sessionStorage bloqueado (modo privado): seguimos sin perfil.
     }
   }, []);
 
-  // Marca de tiempo para detectar bots que completan al instante.
-  const startedAt = React.useRef<number>(Date.now());
-
-  const toggle = React.useCallback(
-    (setter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
-      setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
-    },
-    [],
-  );
+  function toggle<T>(setter: React.Dispatch<React.SetStateAction<T[]>>, value: T) {
+    setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  }
 
   const canSubmit =
-    name.trim().length >= 2 &&
-    contact.trim().length >= 3 &&
-    experience !== "" &&
+    nombre.trim().length >= 2 &&
+    contacto.trim().length >= 3 &&
+    experiencia !== "" &&
     status !== "sending";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -193,17 +231,21 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
-          contact: contact.trim(),
-          experience,
-          mode,
-          availability,
-          themes,
-          notes: notes.trim(),
-          // Se combinan las etiquetas del test rápido con las del simulador,
-          // sin repetir.
-          quizTags: Array.from(new Set([...quizTags, ...simTags])).slice(0, 12),
-          traits: simTraits,
+          nombre: nombre.trim(),
+          contacto: contacto.trim(),
+          experiencia,
+          sistema,
+          tematicas,
+          modalidad,
+          frecuencia,
+          disponibilidad,
+          lineasRojas,
+          notas: notas.trim(),
+          // Metadata inferida por el modelo
+          mlTags: Array.from(new Set([...quizTags, ...mlTags])).slice(0, 14),
+          mlVector,
+          mlArchetype: mlProfile?.archetype?.id ?? null,
+          mlCampaign: mlProfile?.campaign?.id ?? null,
           source: source ?? "web",
           website: honeypot,
           elapsedMs: Date.now() - startedAt.current,
@@ -214,6 +256,13 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
 
       if (res.ok && data.ok) {
         setStatus("sent");
+        try {
+          window.sessionStorage.removeItem(PROFILE_TAGS_KEY);
+          window.sessionStorage.removeItem(PROFILE_VECTOR_KEY);
+          window.sessionStorage.removeItem(PROFILE_ML_KEY);
+        } catch {
+          /* noop */
+        }
         onDone?.();
         return;
       }
@@ -230,19 +279,25 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
     return (
       <div className="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
         <div className="text-4xl">🎲</div>
-        <div className="text-lg font-extrabold text-primary">¡Listo, {name.trim().split(" ")[0]}!</div>
+        <div className="font-display text-lg font-extrabold text-primary">
+          ¡Listo, {nombre.trim().split(" ")[0]}!
+        </div>
         <p className="text-sm text-text/80">
           Ya tenemos tu postulación. Te escribimos a{" "}
-          <span className="font-semibold text-text">{contact}</span> cuando armemos el grupo que te calce.
+          <span className="font-semibold text-text">{contacto}</span> cuando armemos el grupo que te calce.
         </p>
-        <p className="text-xs text-text/60">Mientras tanto, probá el simulador para ir tomándole la mano.</p>
+        {mlProfile?.campaign ? (
+          <p className="text-xs text-muted">
+            Te vamos a tener en cuenta para <span className="text-primary">{mlProfile.campaign.name}</span>.
+          </p>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="relative space-y-6" noValidate>
-      {/* Honeypot: invisible para personas, irresistible para bots. */}
+    <form onSubmit={onSubmit} className="relative space-y-7" noValidate>
+      {/* Honeypot */}
       <div aria-hidden="true" className="absolute h-0 w-0 overflow-hidden opacity-0">
         <label htmlFor="website">No completar</label>
         <input
@@ -256,13 +311,13 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
         />
       </div>
 
-      {simTags.length > 0 ? (
+      {mlTags.length > 0 ? (
         <div className="rounded-xl border border-mystic/45 bg-mystic/10 p-4">
           <div className="text-xs font-semibold uppercase tracking-widest text-mystic">
-            Perfil del simulador detectado
+            {mlProfile?.archetype ? `Perfil detectado: ${mlProfile.archetype.name}` : "Perfil del simulador"}
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
-            {simTags.map((t) => (
+            {mlTags.map((t) => (
               <span
                 key={t}
                 className="rounded-full border border-mystic/50 px-3 py-1 text-xs font-semibold text-mystic"
@@ -271,133 +326,172 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
               </span>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">Se envía junto con tu postulación.</p>
+          {autofilled ? (
+            <p className="mt-2 text-xs text-muted">
+              Precompletamos sistema, temática y frecuencia según cómo jugaste. Cambiá lo que no te
+              represente.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-text/80">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
             Tu nombre <span className="text-primary">*</span>
           </span>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
             required
             maxLength={80}
             autoComplete="name"
             placeholder="Cómo te llamamos"
-            className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
+            className="w-full rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
           />
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-text/80">
-            Dónde te escribimos <span className="text-primary">*</span>
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+            Discord o Instagram <span className="text-primary">*</span>
           </span>
           <input
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
+            value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
             required
             maxLength={120}
-            placeholder="@instagram, usuario de Discord o mail"
-            className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
+            placeholder="@usuario o tu tag de Discord"
+            className="w-full rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
           />
         </label>
       </div>
 
-      <fieldset>
-        <legend className="mb-2 text-xs font-semibold text-text/80">
-          ¿Cuánto jugaste? <span className="text-primary">*</span>
-        </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {EXPERIENCE.map((opt) => (
+      <Field label="Experiencia" required>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {EXPERIENCIA.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => setExperience(opt.value)}
-              aria-pressed={experience === opt.value}
+              onClick={() => setExperiencia(opt.value)}
+              aria-pressed={experiencia === opt.value}
               className={[
                 "rounded-xl border px-4 py-3 text-left transition",
-                experience === opt.value
+                experiencia === opt.value
                   ? "border-primary bg-primary/10"
-                  : "border-border/70 bg-black/30 hover:border-primary/60",
+                  : "border-border/70 bg-surface/60 hover:border-primary/60",
               ].join(" ")}
             >
               <div className="text-sm font-bold text-text">{opt.label}</div>
-              <div className="text-xs text-text/60">{opt.hint}</div>
+              <div className="text-[11px] text-muted">{opt.hint}</div>
             </button>
           ))}
         </div>
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend className="mb-2 text-xs font-semibold text-text/80">¿Online o presencial?</legend>
+      <Field label="Sistema preferido">
         <div className="flex flex-wrap gap-2">
-          {MODES.map((m) => (
-            <Chip key={m.value} active={mode === m.value} onClick={() => setMode(m.value)}>
-              {m.label}
+          {SISTEMA.map((o) => (
+            <Chip key={o.value} active={sistema === o.value} onClick={() => setSistema(o.value)}>
+              {o.label}
             </Chip>
           ))}
         </div>
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend className="mb-2 text-xs font-semibold text-text/80">
-          ¿Cuándo podés? <span className="font-normal text-text/50">(las que quieras)</span>
-        </legend>
+      <Field label="Temática" hint="Elegí todas las que te tiren.">
         <div className="flex flex-wrap gap-2">
-          {AVAILABILITY.map((a) => (
-            <Chip key={a} active={availability.includes(a)} onClick={() => toggle(setAvailability, a)}>
-              {a}
+          {TEMATICA.map((o) => (
+            <Chip
+              key={o.value}
+              active={tematicas.includes(o.value)}
+              onClick={() => toggle(setTematicas, o.value)}
+            >
+              {o.label}
             </Chip>
           ))}
         </div>
-      </fieldset>
+      </Field>
 
-      <fieldset>
-        <legend className="mb-2 text-xs font-semibold text-text/80">
-          ¿Qué te tira más? <span className="font-normal text-text/50">(opcional)</span>
-        </legend>
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field label="Modalidad">
+          <div className="flex flex-wrap gap-2">
+            {MODALIDAD.map((o) => (
+              <Chip key={o.value} active={modalidad === o.value} onClick={() => setModalidad(o.value)}>
+                {o.label}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Frecuencia">
+          <div className="flex flex-wrap gap-2">
+            {FRECUENCIA.map((o) => (
+              <Chip key={o.value} active={frecuencia === o.value} onClick={() => setFrecuencia(o.value)}>
+                {o.label}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      </div>
+
+      <Field label="Disponibilidad horaria" hint="Las que te sirvan.">
         <div className="flex flex-wrap gap-2">
-          {THEMES.map((t) => (
-            <Chip key={t} active={themes.includes(t)} onClick={() => toggle(setThemes, t)}>
-              {t}
+          {DISPONIBILIDAD.map((o) => (
+            <Chip
+              key={o.value}
+              active={disponibilidad.includes(o.value)}
+              onClick={() => toggle(setDisponibilidad, o.value)}
+            >
+              {o.label}
             </Chip>
           ))}
         </div>
-      </fieldset>
+      </Field>
+
+      <Field
+        label="Líneas rojas"
+        hint="Temas que preferís que la mesa evite. Se respetan sin preguntar por qué."
+      >
+        <div className="flex flex-wrap gap-2">
+          {LINEAS_ROJAS.map((o) => (
+            <Chip
+              key={o.value}
+              tone="ember"
+              active={lineasRojas.includes(o.value)}
+              onClick={() => toggle(setLineasRojas, o.value)}
+            >
+              {o.label}
+            </Chip>
+          ))}
+        </div>
+      </Field>
 
       <label className="block">
-        <span className="mb-1 block text-xs font-semibold text-text/80">
-          Algo que quieras aclarar <span className="font-normal text-text/50">(opcional)</span>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+          Algo más que quieras aclarar
         </span>
         <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
           rows={3}
           maxLength={600}
-          placeholder="Temas que preferís evitar, horarios raros, si venís con un amigo…"
-          className="w-full rounded-xl border border-border/70 bg-black/40 px-4 py-3 text-base text-text outline-none placeholder:text-text/40 focus-visible:ring-2 focus-visible:ring-primary/70"
+          placeholder="Horarios raros, si venís con un amigo, qué te gustaría probar…"
+          className="w-full resize-y rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
         />
       </label>
 
       {status === "error" && error ? (
-        <div className="rounded-xl border border-red-500/50 bg-red-500/10 p-4">
-          <div className="text-sm font-semibold text-red-200">{error}</div>
+        <div className="rounded-xl border border-ember/50 bg-ember/10 p-4">
+          <div className="text-sm font-semibold text-text/90">{error}</div>
           <FallbackContacts />
         </div>
       ) : null}
 
       <div className="space-y-2">
-        <Button
-          type="submit"
-          disabled={!canSubmit}
-          className="w-full rounded-xl px-5 py-4 text-base font-extrabold"
-        >
+        <Button type="submit" disabled={!canSubmit} className="w-full rounded-xl px-5 py-4 text-base font-extrabold">
           {status === "sending" ? "Enviando…" : "Postularme"}
         </Button>
-        <p className="text-center text-xs text-text/50">
+        <p className="text-center text-xs text-muted">
           Sólo usamos tus datos para contactarte por la mesa. Nada de spam.
         </p>
       </div>
@@ -405,5 +499,4 @@ function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
   );
 }
 
-export { RpgSignupForm };
 export default RpgSignupForm;

@@ -199,6 +199,112 @@ El bundle del cliente no creció nada respecto de la versión anterior.
 
 ---
 
+## Motor de Machine Learning
+
+### Cómo funciona
+Cada acción de texto libre pasa por `POST /api/ml/classify`:
+
+1. **Vectorización** (`lib/ml/vectorize.ts`): normaliza, tokeniza, aplica un
+   stemmer del español y arma una bolsa de palabras TF-IDF.
+2. **k-NN**: similitud coseno contra 47 ejemplos etiquetados
+   (`data/ml-simulation-dataset.ts`), k=5 con voto ponderado.
+3. **Perfil**: promedio ponderado de los vecinos sobre 8 dimensiones. Los turnos
+   recientes pesan más (`blendVectors`).
+4. **Recomendación** (`lib/ml/recommend.ts`): coseno ponderado contra 7 perfiles
+   de campaña y 7 arquetipos de jugador.
+
+Las 8 dimensiones: combate, creatividad, equipo, ley, riesgo, oscuridad, regla, humor.
+
+### Por qué k-NN y no un transformer
+`@xenova/transformers` y WebLLM descargan entre 50 MB y varios GB antes del
+primer resultado. El tráfico de este sitio llega desde Instagram, en celular.
+Con un vocabulario acotado (acciones de rol en español) TF-IDF + k-NN rinde
+parecido, corre en microsegundos y —esto importa más— **es explicable**: la
+respuesta incluye los vecinos que la produjeron, así que se puede auditar por
+qué recomendó lo que recomendó.
+
+### El modelo aprende
+`/admin/modelo` tiene dos formas de ajustarlo:
+
+- **Sliders**: cada dimensión pesa de 0 (apagada) a 3 (triplicada).
+- **Corrección**: cargás un perfil, indicás qué recomendó el motor y qué
+  correspondía. Los pesos se mueven en esa dirección (regla tipo perceptrón,
+  `learnFromFeedback`) y se renormalizan para que cambie la *forma* del vector
+  de pesos, no su magnitud.
+
+La tasa de aprendizaje es 0.08 a propósito: diez correcciones consistentes
+mueven la aguja, una sola casi no.
+
+Todo se persiste en `ml_weights` y se audita en `ml_feedback`.
+
+### Líneas rojas: descarte, no penalización
+Si alguien marcó que no tolera horror corporal, la campaña de horror corporal
+**se descarta**, no baja de puesto. Ofrecer una mesa que cruza un límite
+declarado es exactamente el error que hace que alguien no vuelva.
+
+---
+
+## Dado 3D
+
+`components/dice/dice3d.tsx`. Icosaedro real con Three.js: 20 caras, normales
+calculadas, números generados en canvas, tres luces (dorada, púrpura, rebote
+cálido) y sombra proyectada.
+
+- **Física propia**, no `cannon-es` ni `rapier`: integración de velocidad
+  angular con damping exponencial y rebote vertical amortiguado. Un motor
+  completo son ~500 kb para simular un cuerpo rebotando en un plano.
+- **El resultado se sortea antes de animar** con `crypto.getRandomValues` y
+  rechazo del resto; después el dado se orienta para que esa cara quede arriba.
+  Dejar que la física decida suena elegante hasta que el dado queda apoyado en
+  una arista.
+- **Fallback sin WebGL**: si el contexto no se crea, aparece un dado plano
+  funcional. Pasa en navegadores viejos y con aceleración por hardware apagada.
+- Cleanup completo de geometrías, materiales, texturas y renderer: sin esto cada
+  montaje filtra un contexto WebGL y el navegador corta a los ~16.
+
+---
+
+## Audio: qué estaba mal y qué se hizo
+
+El sistema anterior generaba interferencia por cuatro razones concretas:
+
+| Problema | Por qué sonaba mal | Solución |
+|---|---|---|
+| `gain.value = x` de golpe | Un salto instantáneo de amplitud es un impulso: contiene todas las frecuencias. Ese era el "clic". | Todo sube y baja con rampas ≥20 ms |
+| Ruido blanco con lowpass suave | Eso es siseo, no ambiente | Pad armónico: senoidales en octavas y quintas justas |
+| Fuentes sumadas sin control | Los picos coincidían, la señal pasaba de 1.0 y la placa clippeaba | `DynamicsCompressor` en el master |
+| Un `AudioContext` por componente | Varios grafos compitiendo | Un solo bus con canales de música y efectos |
+
+Los presets están en `lib/audio/ambient.ts`. Cada uno es un acorde con
+relaciones 1 : 1.5 : 2 : 3 y un LFO de 0.04–0.12 Hz sobre el filtro, para que
+respire.
+
+### Narración
+`components/simulator/narration.tsx`. Elige la mejor voz en español disponible
+puntuándolas (prioriza es-AR, locales y neurales; penaliza las "compact" de iOS),
+y habla frase por frase modulando pitch y velocidad —las preguntas suben, la
+última frase baja y se ralentiza—. Frases separadas además esquivan el bug viejo
+de Chrome que corta los textos largos a los ~15 segundos.
+
+El efecto de máquina de escribir acompaña siempre, no sólo como respaldo: la
+mayoría navega en silencio desde el celular.
+
+---
+
+## Dependencias
+
+Sólo se agregó **`three`**. Todo lo demás está implementado en el proyecto:
+
+| Lo típico | Qué se usó | Motivo |
+|---|---|---|
+| `@react-three/fiber` + `drei` | Three.js pelado | Un objeto con loop propio no necesita reconciliador |
+| `cannon-es` / `rapier` | Física propia (~60 líneas) | ~500 kb para un cuerpo rígido |
+| `@xenova/transformers` | k-NN + TF-IDF | 50 MB–varios GB de descarga |
+| `canvas-confetti` | `lib/fx/confetti.ts` | 60 líneas con la paleta del sitio |
+| `howler` / `tone` + mp3 | Web Audio directo | 0 kb, funciona offline |
+
+---
+
 ## Dónde publicarlo
 
 La web no consigue jugadores por sí sola: es el lugar al que mandás a la gente

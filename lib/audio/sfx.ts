@@ -1,173 +1,178 @@
+import { getBus, isSfxMuted } from "@/lib/audio/engine";
+
 /**
- * Efectos de sonido sintetizados con Web Audio.
+ * Efectos de sonido. Todos sintetizados, cero archivos.
  *
- * Cero archivos: nada de mp3 ni wav que descargar. Todo se genera en el
- * momento con osciladores y ruido filtrado, así que suma 0 kb a la carga y
- * funciona offline.
- *
- * Detalle importante: los navegadores no dejan crear/reanudar un AudioContext
- * sin un gesto del usuario. Todas las funciones se llaman desde un click, y
- * si el contexto no está disponible fallan en silencio (nunca rompen la UI).
+ * Regla que se rompía antes y ahora se respeta en todo el archivo: ninguna
+ * ganancia arranca ni termina en un valor distinto de ~0. Toda nota tiene
+ * ataque y caída. Sin eso, cada sonido viene con un clic de regalo.
  */
 
-let ctx: AudioContext | null = null;
-let muted = false;
+export { setSfxMuted, setSfxVolume, isSfxMuted } from "@/lib/audio/engine";
 
-function getCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+/** Nota con envolvente ADSR simplificada (ataque + caída). */
+function note(
+  freq: number,
+  at: number,
+  dur: number,
+  peak: number,
+  type: OscillatorType = "sine",
+  glideTo?: number,
+): void {
+  const b = getBus();
+  if (!b) return;
 
-  try {
-    if (!ctx) {
-      const Ctor =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return null;
-      ctx = new Ctor();
-    }
-    if (ctx.state === "suspended") void ctx.resume();
-    return ctx;
-  } catch {
-    return null;
+  const osc = b.ctx.createOscillator();
+  const gain = b.ctx.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, at);
+  if (glideTo !== undefined) {
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, glideTo), at + dur);
   }
+
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + 0.015); // ataque
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur); // caída
+
+  osc.connect(gain);
+  gain.connect(b.sfx);
+
+  osc.start(at);
+  osc.stop(at + dur + 0.05);
 }
 
-export function setMuted(v: boolean): void {
-  muted = v;
-}
+/**
+ * Golpe percusivo del dado.
+ *
+ * Ruido filtrado con pasabanda estrecho: suena a plástico duro contra madera,
+ * no a siseo. La clave está en el decaimiento cúbico del buffer.
+ */
+function clack(at: number, peak: number, freq: number): void {
+  const b = getBus();
+  if (!b) return;
 
-export function isMuted(): boolean {
-  return muted;
-}
-
-/** Ráfaga de ruido filtrado: el "clac" de un dado contra la mesa. */
-function clack(at: number, gain: number, lowpass: number): void {
-  const c = getCtx();
-  if (!c) return;
-
-  const len = Math.floor(c.sampleRate * 0.05);
-  const buf = c.createBuffer(1, len, c.sampleRate);
+  const len = Math.floor(b.ctx.sampleRate * 0.045);
+  const buf = b.ctx.createBuffer(1, len, b.ctx.sampleRate);
   const data = buf.getChannelData(0);
 
   for (let i = 0; i < len; i++) {
-    // Decaimiento exponencial: ataque seco, cola corta.
-    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    const decay = Math.pow(1 - i / len, 3);
+    data[i] = (Math.random() * 2 - 1) * decay;
   }
 
-  const src = c.createBufferSource();
+  const src = b.ctx.createBufferSource();
   src.buffer = buf;
 
-  const filter = c.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = lowpass;
-  filter.Q.value = 1.4;
+  const bp = b.ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq;
+  bp.Q.value = 2.2; // estrecho: le saca el siseo de banda ancha
 
-  const g = c.createGain();
-  g.gain.value = gain;
+  const gain = b.ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak, at + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
 
-  src.connect(filter);
-  filter.connect(g);
-  g.connect(c.destination);
+  src.connect(bp);
+  bp.connect(gain);
+  gain.connect(b.sfx);
+
   src.start(at);
   src.stop(at + 0.06);
 }
 
-/** Tono simple con envolvente, para los remates. */
-function tone(freq: number, at: number, dur: number, gain: number, type: OscillatorType = "sine"): void {
-  const c = getCtx();
-  if (!c) return;
+/** Rodada: golpes que se espacian y se apagan, como un dado perdiendo energía. */
+export function playDiceRoll(durationMs = 1600): void {
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
 
-  const o = c.createOscillator();
-  const g = c.createGain();
-
-  o.type = type;
-  o.frequency.setValueAtTime(freq, at);
-
-  g.gain.setValueAtTime(0, at);
-  g.gain.linearRampToValueAtTime(gain, at + 0.012);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-
-  o.connect(g);
-  g.connect(c.destination);
-  o.start(at);
-  o.stop(at + dur + 0.02);
-}
-
-/** Rodada del dado: golpes irregulares que se van espaciando y apagando. */
-export function playDiceRoll(durationMs = 1100): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
-
-  const t0 = c.currentTime;
+  const t0 = b.ctx.currentTime;
   const total = durationMs / 1000;
 
   let t = 0;
-  let gap = 0.045;
+  let gap = 0.04;
 
   while (t < total) {
     const progress = t / total;
-    clack(
-      t0 + t,
-      0.16 * (1 - progress * 0.75),
-      600 + Math.random() * 2200,
-    );
-    // Los golpes se van separando, como un dado que pierde energía.
-    gap *= 1.16;
-    t += gap + Math.random() * 0.02;
+    clack(t0 + t, 0.20 * (1 - progress * 0.8), 700 + Math.random() * 1800);
+    gap *= 1.14;
+    t += gap + Math.random() * 0.015;
   }
 }
 
-/** Acorde ascendente para un éxito. */
+/** Golpe único: el dado tocando la mesa. */
+export function playDiceImpact(): void {
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
+  clack(b.ctx.currentTime, 0.22, 900);
+}
+
+/** Tríada mayor ascendente. */
 export function playSuccess(): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
 
-  const t = c.currentTime;
-  tone(523.25, t, 0.28, 0.12, "triangle");
-  tone(659.25, t + 0.07, 0.3, 0.1, "triangle");
-  tone(783.99, t + 0.14, 0.38, 0.09, "sine");
+  const t = b.ctx.currentTime;
+  note(523.25, t, 0.3, 0.14, "triangle");
+  note(659.25, t + 0.06, 0.32, 0.11, "triangle");
+  note(783.99, t + 0.12, 0.42, 0.09, "sine");
 }
 
-/** Descenso grave para un fallo. */
+/** Descenso menor. */
 export function playFailure(): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
 
-  const t = c.currentTime;
-  tone(196, t, 0.34, 0.11, "sawtooth");
-  tone(146.83, t + 0.1, 0.42, 0.09, "triangle");
+  const t = b.ctx.currentTime;
+  note(220, t, 0.34, 0.12, "triangle", 174.61);
+  note(146.83, t + 0.08, 0.44, 0.10, "sine");
 }
 
-/** Fanfarria corta para el 20 natural. */
+/** Fanfarria del 20 natural. */
 export function playCrit(): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
 
-  const t = c.currentTime;
+  const t = b.ctx.currentTime;
   [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-    tone(f, t + i * 0.075, 0.4, 0.12, "triangle");
+    note(f, t + i * 0.07, 0.45, 0.13, "triangle");
   });
-  tone(1318.5, t + 0.34, 0.55, 0.08, "sine");
+  note(1318.51, t + 0.32, 0.7, 0.08, "sine");
+  note(261.63, t + 0.32, 0.8, 0.09, "sine"); // fundamental que sostiene
 }
 
-/** Golpe seco y grave para el 1 natural. */
+/** Caída grave del 1 natural. */
 export function playFumble(): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
 
-  const t = c.currentTime;
-  tone(110, t, 0.5, 0.14, "sawtooth");
-  tone(73.42, t + 0.06, 0.6, 0.12, "square");
+  const t = b.ctx.currentTime;
+  note(196, t, 0.55, 0.14, "triangle", 98);
+  note(130.81, t + 0.05, 0.65, 0.11, "sine", 65.41);
 }
 
-/** Click suave para la interfaz. */
+/** Click de interfaz, bien corto. */
 export function playClick(): void {
-  if (muted) return;
-  const c = getCtx();
-  if (!c) return;
-  clack(c.currentTime, 0.05, 2400);
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
+  clack(b.ctx.currentTime, 0.07, 2200);
+}
+
+/** Campanita para cuando el modelo termina de inferir. */
+export function playChime(): void {
+  if (isSfxMuted()) return;
+  const b = getBus();
+  if (!b) return;
+
+  const t = b.ctx.currentTime;
+  note(880, t, 0.5, 0.07, "sine");
+  note(1174.66, t + 0.08, 0.55, 0.05, "sine");
 }

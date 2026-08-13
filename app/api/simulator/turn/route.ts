@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { generateTurn, activeProvider } from "@/lib/ai/providers";
 import { evaluateHeuristic } from "@/lib/ai/heuristic";
-import { sanitizeTraitDelta, type TraitDelta } from "@/lib/traits";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * Un turno de texto libre en el simulador.
  *
- * Entra lo que el jugador escribió + la escena; sale la narración adaptada,
- * el movimiento del perfil y la dificultad de la tirada.
+ * Entra lo que el jugador escribió + la escena; sale la narración adaptada y la
+ * dificultad de la tirada. La puntuación del perfil la hace /api/ml/classify,
+ * que corre en paralelo a este endpoint.
  *
  * Diseño clave: si no hay API key, o si el proveedor falla, o si devuelve algo
  * que no parsea, SIEMPRE cae al evaluador heurístico. El simulador nunca se
@@ -29,7 +29,6 @@ const Schema = z.object({
 
 export type TurnResponse = {
   narration: string;
-  delta: TraitDelta;
   dc: number;
   tag: string;
   /** true si la narración salió de un LLM; false si vino del heurístico. */
@@ -71,7 +70,6 @@ export async function POST(req: Request) {
     if (ai) {
       const payload: TurnResponse = {
         narration: ai.narration.slice(0, 700),
-        delta: sanitizeTraitDelta(ai.delta),
         dc: Math.min(18, Math.max(8, Math.round(ai.dc))),
         tag: ai.tag.slice(0, 20),
         ai: true,
@@ -84,7 +82,6 @@ export async function POST(req: Request) {
   const h = evaluateHeuristic(action, sceneTitle);
   const payload: TurnResponse = {
     narration: h.narration,
-    delta: sanitizeTraitDelta(h.delta),
     dc: h.dc,
     tag: h.kind,
     ai: false,
