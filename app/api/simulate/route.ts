@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveTreeTurn, classifyArchetype, ROOT_NODE_ID } from "@/lib/ai/tree-fallback";
+import { resolveTreeTurn, classifyArchetype } from "@/lib/ai/tree-fallback";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
@@ -8,13 +8,15 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
  *
  * Intenta el servicio Python local (ml_service/, puerto 8000) primero. Si no
  * responde en 1.5s, si no está corriendo, o si devuelve algo inesperado, cae
- * al motor TypeScript (lib/ai/tree-fallback.ts) sin que el jugador note nada
- * — misma forma de respuesta en los dos casos.
+ * al motor TypeScript (lib/ai/tree-fallback.ts) — misma forma de respuesta en
+ * los dos casos, sin que el jugador note el cambio.
  *
- * En producción (Vercel/Netlify) el fetch a localhost:8000 simplemente falla
- * de inmediato (nada escucha ahí) y se usa el fallback siempre. Esto es
- * intencional, no un bug: el motor Python es una comodidad de desarrollo, no
- * una dependencia de producción.
+ * En producción (Vercel) el fetch a localhost:8000 falla de inmediato (nada
+ * escucha ahí) y se usa el fallback siempre. Es intencional: el motor Python
+ * es una comodidad de desarrollo, nunca una dependencia de producción. El
+ * fallback TS además resuelve contra el árbol combinado (base + nodos que
+ * agregó el Master desde /admin/arbol); el servicio Python sólo ve el JSON
+ * estático.
  */
 
 export const runtime = "nodejs";
@@ -24,7 +26,7 @@ const PYTHON_SERVICE_URL = process.env.ML_SERVICE_URL ?? "http://localhost:8000"
 const PYTHON_TIMEOUT_MS = 1500;
 
 const Schema = z.object({
-  nodeId: z.string().min(1).max(60).default(ROOT_NODE_ID),
+  nodeId: z.string().min(1).max(60).default("root"),
   text: z.string().trim().min(1, "Escribí algo.").max(400),
   accumulatedWeights: z.record(z.string(), z.number()).default({}),
 });
@@ -49,7 +51,6 @@ type PythonTurnResponse = {
   available_options?: string[];
 };
 
-/** Normaliza la respuesta de Python al mismo shape que devuelve el fallback TS. */
 function fromPython(data: PythonTurnResponse) {
   return {
     ok: data.ok,
@@ -91,16 +92,14 @@ async function tryPython(nodeId: string, text: string, accumulatedWeights: Recor
     const data = (await res.json()) as PythonTurnResponse;
     return fromPython(data);
   } catch {
-    // Timeout, servicio caído, o cualquier otra falla de red: silencioso,
-    // cae al fallback. Esto es exactamente el comportamiento pedido.
     return null;
   } finally {
     clearTimeout(timer);
   }
 }
 
-function useFallback(nodeId: string, text: string, accumulatedWeights: Record<string, number>) {
-  const result = resolveTreeTurn(nodeId, text);
+async function useFallback(nodeId: string, text: string, accumulatedWeights: Record<string, number>) {
+  const result = await resolveTreeTurn(nodeId, text);
 
   if (!result.ok) {
     return { ok: false, error: result.error, engine: "typescript" as const };
@@ -123,7 +122,7 @@ function useFallback(nodeId: string, text: string, accumulatedWeights: Record<st
     newWeights[k] = (newWeights[k] ?? 0) + v;
   }
 
-  const archetype = classifyArchetype(newWeights);
+  const archetype = await classifyArchetype(newWeights);
 
   return {
     ok: true,
@@ -155,19 +154,16 @@ export async function POST(req: Request) {
 
   const { nodeId, text, accumulatedWeights } = parsed.data;
 
-  // Intento 1: servicio Python local (dev). Silencioso si no está.
   const pythonResult = await tryPython(nodeId, text, accumulatedWeights);
   if (pythonResult) {
     return NextResponse.json(pythonResult);
   }
 
-  // Intento 2 (siempre disponible, incluida producción serverless): TS.
-  const fallbackResult = useFallback(nodeId, text, accumulatedWeights);
+  const fallbackResult = await useFallback(nodeId, text, accumulatedWeights);
   return NextResponse.json(fallbackResult);
 }
 
 export async function GET() {
-  // Endpoint de diagnóstico: qué motor está respondiendo ahora mismo.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PYTHON_TIMEOUT_MS);
 
@@ -182,5 +178,5 @@ export async function GET() {
     clearTimeout(timer);
   }
 
-  return NextResponse.json({ engine: "typescript", detail: "Servicio Python no disponible (esperado en producción)." });
+  return NextResponse.json({ engine: "typescript", detail: "Servicio Python no disponible." });
 }

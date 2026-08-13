@@ -197,16 +197,8 @@ export function FreeAction({
     return (
       <div className="space-y-4 rounded-2xl border border-primary/35 bg-surface/60 p-5">
         <div>
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-2">
             <span className="text-xs font-semibold uppercase tracking-widest text-primary">El DM narra</span>
-            {!stage.turn.ai ? (
-              <span
-                className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] text-muted"
-                title="Sin API key de IA: narración del evaluador local"
-              >
-                modo local
-              </span>
-            ) : null}
           </div>
           <Typewriter
             text={stage.turn.narration}

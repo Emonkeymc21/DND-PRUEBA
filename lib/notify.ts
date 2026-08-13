@@ -7,7 +7,8 @@
  * Cómo obtener la URL:
  *   Discord > Ajustes del canal > Integraciones > Webhooks > Nuevo webhook
  *
- * Si además no tenés DATABASE_URL, el webhook funciona como backend único.
+ * Funciona como confirmación independiente de Google Forms: si por algún
+ * motivo el envío a Forms falla, el webhook sigue avisando igual.
  */
 
 import {

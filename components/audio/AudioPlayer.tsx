@@ -152,11 +152,6 @@ export function AudioPlayer({ theme }: { theme: AudioTheme }) {
         disabled={state === "loading"}
         aria-label={playing ? "Pausar música ambiente" : "Reproducir música ambiente"}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border/70 text-base text-primary transition hover:border-primary/70 disabled:opacity-50"
-        title={
-          state === "missing"
-            ? "Falta el archivo de audio: ver components/audio/AudioPlayer.tsx"
-            : undefined
-        }
       >
         {state === "loading" ? "…" : playing ? "🔊" : "🔇"}
       </button>
@@ -175,12 +170,6 @@ export function AudioPlayer({ theme }: { theme: AudioTheme }) {
       ) : (
         <span className="text-xs text-muted">Música ambiente</span>
       )}
-
-      {state === "missing" ? (
-        <span className="text-[10px] text-ember" title="Poné un mp3 en /public/audio/">
-          sin pista
-        </span>
-      ) : null}
     </div>
   );
 }

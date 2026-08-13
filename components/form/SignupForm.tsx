@@ -54,15 +54,14 @@ type Props = {
   source?: string;
 };
 
-type Status = "idle" | "sending" | "sent" | "queued" | "error";
+type Status = "idle" | "sending" | "sent" | "queued";
 
 /**
- * Nota sobre "error" vs "queued": el estado "error" queda para fallas de
- * VALIDACIÓN del propio formulario (ver más abajo, se usa poco porque
- * canSubmit ya filtra la mayoría). Cuando falla el ENVÍO al servidor, el
- * dato nunca se pierde: se encola local con enqueuePending() y el estado
- * pasa a "queued", que tiene su propia UI tranquila — nunca un modal de
- * error para algo que en realidad se manejó.
+ * "sent" (confirmado por el servidor) y "queued" (guardado local, se
+ * reintenta solo) muestran EXACTAMENTE la misma pantalla de éxito: la
+ * persona nunca ve un cartel de error ni una distinción entre los dos casos.
+ * La postulación nunca se pierde en silencio, pero tampoco se le pide a
+ * quien se postula que se preocupe por la infraestructura del sitio.
  */
 
 function Chip({
@@ -177,7 +176,6 @@ export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
   const [honeypot, setHoneypot] = React.useState("");
 
   const [status, setStatus] = React.useState<Status>("idle");
-  const [error, setError] = React.useState<string | null>(null);
 
   // --- Perfil que dejó el simulador ---
   const [mlTags, setMlTags] = React.useState<string[]>([]);
@@ -234,7 +232,6 @@ export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
     if (!canSubmit) return;
 
     setStatus("sending");
-    setError(null);
 
     const payload = {
       nombre: nombre.trim(),
@@ -293,7 +290,7 @@ export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
     }
   }
 
-  if (status === "sent") {
+  if (status === "sent" || status === "queued") {
     return (
       <div className="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
         <div className="text-4xl">🎲</div>
@@ -309,24 +306,6 @@ export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
             Te vamos a tener en cuenta para <span className="text-primary">{mlProfile.campaign.name}</span>.
           </p>
         ) : null}
-      </div>
-    );
-  }
-
-  if (status === "queued") {
-    return (
-      <div className="space-y-3 rounded-2xl border border-mystic/40 bg-mystic/5 p-6 text-center">
-        <div className="text-4xl">📨</div>
-        <div className="font-display text-lg font-extrabold text-mystic">
-          Guardado, {nombre.trim().split(" ")[0]}.
-        </div>
-        <p className="text-sm text-text/80">
-          Tu conexión falló justo al enviar, así que la guardamos acá en tu navegador y la vamos a
-          reintentar sola apenas puedas. No hace falta que hagas nada más.
-        </p>
-        <p className="text-xs text-muted">
-          Si querés asegurarte de que llegue, también podés escribirnos directo.
-        </p>
         <FallbackContacts />
       </div>
     );
@@ -516,13 +495,6 @@ export function RpgSignupForm({ onDone, quizTags = [], source }: Props) {
           className="w-full resize-y rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
         />
       </label>
-
-      {status === "error" && error ? (
-        <div className="rounded-xl border border-ember/50 bg-ember/10 p-4">
-          <div className="text-sm font-semibold text-text/90">{error}</div>
-          <FallbackContacts />
-        </div>
-      ) : null}
 
       <div className="space-y-2">
         <Button type="submit" disabled={!canSubmit} className="w-full rounded-xl px-5 py-4 text-base font-extrabold">

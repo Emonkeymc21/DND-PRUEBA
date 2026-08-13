@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { db, isDbConfigured } from "@/lib/db";
+import { submitToGoogleForms, isGoogleFormsConfigured } from "@/lib/google-forms";
 import { notifyDiscord, isWebhookConfigured } from "@/lib/notify";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import {
@@ -17,20 +17,19 @@ import {
 /**
  * Endpoint público de postulación.
  *
- * Los enums de validación salen del mismo módulo que alimenta el formulario y
- * el motor de ML, así que no puede haber un valor válido en la interfaz que el
- * servidor rechace (ni al revés).
+ * Sin base de datos: cada postulación se manda en paralelo a dos canales
+ * independientes, Google Forms (server-to-server, sin el problema de CORS que
+ * tenía el POST desde el navegador) y el webhook de Discord. Alcanza con que
+ * UNO de los dos confirme para considerar la postulación entregada.
+ *
+ * Si los dos fallan (sin conexión a Google, sin webhook configurado, error de
+ * red), igual respondemos 200: el cliente (components/form/SignupForm.tsx)
+ * guarda la postulación en una cola local y la reintenta sola más tarde, sin
+ * mostrarle a la persona ningún cartel de error. Ver lib/signup-backup.ts.
  */
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const VectorSchema = z.object(
-  Object.fromEntries(DIMENSIONS.map((d) => [d, z.number().min(0).max(1)])) as Record<
-    (typeof DIMENSIONS)[number],
-    z.ZodNumber
-  >,
-);
 
 const Schema = z.object({
   nombre: z.string().trim().min(2, "Nombre muy corto").max(80),
@@ -45,9 +44,15 @@ const Schema = z.object({
   lineasRojas: z.array(z.enum(LINEA_ROJA_VALUES)).max(10).default([]),
   notas: z.string().trim().max(600).optional().or(z.literal("")),
 
-  // Metadata del modelo
   mlTags: z.array(z.string().max(40)).max(14).default([]),
-  mlVector: VectorSchema.nullish(),
+  mlVector: z
+    .object(
+      Object.fromEntries(DIMENSIONS.map((d) => [d, z.number().min(0).max(1)])) as Record<
+        (typeof DIMENSIONS)[number],
+        z.ZodNumber
+      >,
+    )
+    .nullish(),
   mlArchetype: z.string().max(40).nullish(),
   mlCampaign: z.string().max(40).nullish(),
 
@@ -82,85 +87,15 @@ export async function POST(req: Request) {
 
   // Honeypot: respondemos ok para que el bot no aprenda que lo detectamos.
   if (data.website && data.website.trim().length > 0) {
-    return NextResponse.json({ ok: true, id: null });
+    return NextResponse.json({ ok: true });
   }
   if (typeof data.elapsedMs === "number" && data.elapsedMs < 3000) {
-    return NextResponse.json({ ok: true, id: null });
-  }
-
-  const hasDb = isDbConfigured();
-  const hasWebhook = isWebhookConfigured();
-
-  if (!hasDb && !hasWebhook) {
-    return NextResponse.json(
-      {
-        ok: false,
-        code: "NO_BACKEND",
-        error:
-          "El formulario todavía no está conectado. Configurá DATABASE_URL o DISCORD_WEBHOOK_URL.",
-      },
-      { status: 503 },
-    );
+    return NextResponse.json({ ok: true });
   }
 
   const notas = data.notas && data.notas.length > 0 ? data.notas : null;
-  let savedId: number | null = null;
 
-  if (hasDb) {
-    try {
-      const sql = db();
-
-      // Deduplicación: mismo contacto en la última hora = doble click.
-      const dupes = await sql<{ id: number }[]>`
-        select id from signups
-        where lower(contacto) = lower(${data.contacto})
-          and created_at > now() - interval '1 hour'
-        limit 1
-      `;
-
-      if (dupes.length > 0) {
-        return NextResponse.json({ ok: true, id: dupes[0]!.id, duplicate: true });
-      }
-
-      const rows = await sql<{ id: number }[]>`
-        insert into signups (
-          nombre, contacto, experiencia, sistema, tematicas, modalidad, frecuencia,
-          disponibilidad, lineas_rojas, notas,
-          ml_tags, ml_vector, ml_archetype, ml_campaign, source
-        ) values (
-          ${data.nombre},
-          ${data.contacto},
-          ${data.experiencia},
-          ${data.sistema},
-          ${data.tematicas},
-          ${data.modalidad},
-          ${data.frecuencia},
-          ${data.disponibilidad},
-          ${data.lineasRojas},
-          ${notas},
-          ${data.mlTags},
-          ${data.mlVector ? JSON.stringify(data.mlVector) : null},
-          ${data.mlArchetype ?? null},
-          ${data.mlCampaign ?? null},
-          ${data.source ?? null}
-        )
-        returning id
-      `;
-
-      savedId = rows[0]?.id ?? null;
-    } catch (err) {
-      console.error("[api/rpg-signup] error de DB:", err);
-      if (!hasWebhook) {
-        return NextResponse.json(
-          { ok: false, code: "DB_ERROR", error: "No pudimos guardar tu postulación. Probá de nuevo." },
-          { status: 500 },
-        );
-      }
-    }
-  }
-
-  const notified = await notifyDiscord({
-    id: savedId,
+  const fields = {
     nombre: data.nombre,
     contacto: data.contacto,
     experiencia: data.experiencia,
@@ -170,17 +105,35 @@ export async function POST(req: Request) {
     frecuencia: data.frecuencia,
     disponibilidad: data.disponibilidad,
     lineasRojas: data.lineasRojas,
-    notas,
-    mlArchetype: data.mlArchetype ?? null,
-    mlCampaign: data.mlCampaign ?? null,
+  };
+
+  // Los dos canales van en paralelo: no tiene sentido esperar a que uno
+  // termine para recién empezar el otro.
+  const [formsOk, discordOk] = await Promise.all([
+    submitToGoogleForms(fields),
+    notifyDiscord({
+      ...fields,
+      notas,
+      mlArchetype: data.mlArchetype ?? null,
+      mlCampaign: data.mlCampaign ?? null,
+    }),
+  ]);
+
+  const delivered = formsOk || discordOk;
+
+  // Si NINGÚN canal está siquiera configurado, se lo decimos con calma en la
+  // respuesta (no es un error del envío, es que el sitio no tiene destino
+  // todavía) — pero igual devolvemos ok:true, porque el cliente lo va a
+  // guardar en su cola local y no hay ninguna razón para alarmar a la
+  // persona que se está postulando por una configuración que no depende
+  // de ella.
+  return NextResponse.json({
+    ok: true,
+    delivered,
+    channels: {
+      googleForms: formsOk,
+      discord: discordOk,
+    },
+    configured: isGoogleFormsConfigured() || isWebhookConfigured(),
   });
-
-  if (savedId === null && !notified) {
-    return NextResponse.json(
-      { ok: false, code: "DELIVERY_FAILED", error: "No pudimos registrar tu postulación." },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({ ok: true, id: savedId });
 }

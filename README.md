@@ -1,8 +1,8 @@
 # La Mesa Perdida
 
 Sitio para reclutar jugadores de rol (D&D y otros TTRPG) en español.
-Next.js 15 (App Router) · TypeScript estricto · Tailwind · Postgres · Three.js
-· motor de ML propio (TS, con acelerador Python opcional).
+Next.js 15 (App Router) · TypeScript estricto · Tailwind · Three.js · motor de
+ML propio en TypeScript (con acelerador Python opcional). Sin base de datos.
 
 ---
 
@@ -10,48 +10,78 @@ Next.js 15 (App Router) · TypeScript estricto · Tailwind · Postgres · Three.
 
 ```bash
 npm install
-cp .env.example .env.local     # completá las variables (ver abajo)
+cp .env.example .env.local     # completá lo que quieras usar (todo opcional)
 npm run dev                    # http://localhost:3000
 ```
 
-El sitio **arranca y funciona sin configurar nada**: sin `DATABASE_URL` ni
-webhook, las postulaciones se guardan localmente y se reintentan solas; sin
-`ADMIN_PASSWORD`, el panel usa `admin123` (ver advertencia en la sección de
-abajo); el motor de ML y el dado 3D no necesitan ninguna variable.
+El sitio **arranca y funciona sin configurar nada**: sin `GOOGLE_FORM_ACTION_URL`
+ni `DISCORD_WEBHOOK_URL`, las postulaciones se guardan en el navegador de la
+persona y se reintentan solas; sin `ADMIN_PASSWORD`, el panel usa `admin123`
+(ver advertencia en `/admin/login`); el dado 3D, el motor de ML y el árbol
+narrativo no necesitan ninguna variable.
 
-El servicio Python (`ml_service/`) es **completamente opcional** — el sitio
-funciona igual sin él, con el motor TypeScript equivalente.
+---
+
+## Cómo llegan las postulaciones (sin base de datos)
+
+Este sitio no tiene base de datos propia. Cada envío del formulario
+(`components/form/SignupForm.tsx`) va, en paralelo, a dos canales
+independientes:
+
+1. **Google Forms** — un POST hecho desde el servidor (`app/api/rpg-signup/route.ts`,
+   vía `lib/google-forms.ts`) hacia la URL real de tu formulario. Server-side y
+   no desde el navegador: así se evita el problema de CORS que tiene un POST
+   directo desde el cliente, y si Google devuelve un error real se puede leer
+   (con un `no-cors` desde el browser eso es imposible). Los campos van
+   mapeados a los `entry.XXX` exactos:
+
+   | Campo | Entry ID |
+   |---|---|
+   | Nombre | `entry.592377339` |
+   | Contacto | `entry.1145937670` |
+   | Experiencia | `entry.1662985932` |
+   | Sistema | `entry.259189639` |
+   | Temática | `entry.1977972677` |
+   | Modalidad | `entry.2000145625` |
+   | Frecuencia | `entry.432896089` |
+   | Disponibilidad | `entry.876431454`, `entry.2140878283`, `entry.2065289993` |
+   | Líneas rojas | `entry.36863628`, `entry.28201251` |
+
+   Falta un dato que sólo vos tenés: la **URL base** de tu formulario
+   (termina en `/formResponse`). Se configura en `GOOGLE_FORM_ACTION_URL`.
+   Cómo conseguirla: abrí tu Google Form en modo edición → los tres puntos
+   arriba a la derecha → "Obtener enlace precargado" (o inspeccioná el HTML
+   del formulario público buscando el `action` del `<form>`).
+
+2. **Discord** — webhook con toda la info en un embed, incluido el arquetipo
+   y la campaña que sugirió el modelo de ML. `DISCORD_WEBHOOK_URL`.
+
+Alcanza con que **uno** de los dos confirme para considerar la postulación
+entregada. Si ninguno está configurado, o si los dos fallan (sin conexión,
+Google caído), el formulario **nunca se lo dice a la persona con un cartel de
+error**: la guarda en `localStorage` (`lib/signup-backup.ts`) y la reintenta
+sola apenas hay red, sin que nadie tenga que volver a completar nada. La
+pantalla de éxito es siempre la misma, se haya confirmado el envío o esté en
+la cola de reintento — la persona nunca necesita saber cuál de los dos pasó.
 
 ---
 
 ## Variables de entorno
 
-| Variable | ¿Obligatoria? | Para qué |
-|---|---|---|
-| `DATABASE_URL` | Recomendada | Guardar postulaciones y usar el panel `/admin` |
-| `ADMIN_PASSWORD` | Sí, si usás DB | Clave del panel. Mínimo 8 caracteres |
-| `DISCORD_WEBHOOK_URL` | Opcional | Aviso al instante en tu celular por cada postulación |
-| `NEXT_PUBLIC_SITE_URL` | Para producción | URL canónica (SEO y OpenGraph) |
-| `NEXT_PUBLIC_CONTACT_*` | Opcional | Contactos de respaldo si el backend falla |
+Todas opcionales. Ver `.env.example` para la lista completa con comentarios.
+Resumen:
 
-**Necesitás al menos uno de `DATABASE_URL` o `DISCORD_WEBHOOK_URL`.** Con solo
-el webhook ya recibís las postulaciones (sin panel ni CSV, pero no perdés a nadie).
-
-### Base de datos (Neon, gratis)
-
-1. Crear un proyecto en [neon.tech](https://neon.tech).
-2. Copiar la connection string. **Importante: la que dice `-pooler`.**
-   Sin pooler, cada función serverless abre su propia conexión y se agota el límite.
-3. Pegarla en `.env.local` y correr:
-
-```bash
-npm run db:setup
-```
-
-### Webhook de Discord
-
-Ajustes del canal → Integraciones → Webhooks → Nuevo webhook → Copiar URL.
-Pegala en `DISCORD_WEBHOOK_URL`. Cada postulación te llega como mensaje formateado.
+| Variable | Para qué |
+|---|---|
+| `GOOGLE_FORM_ACTION_URL` | Envío directo a tu Google Form |
+| `NEXT_PUBLIC_GOOGLE_FORM_VIEW_URL` | Acceso directo a las respuestas desde `/admin` |
+| `DISCORD_WEBHOOK_URL` | Aviso instantáneo por Discord |
+| `ADMIN_PASSWORD` | Clave del panel (sin esto: `admin123`, ver advertencia) |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Persistencia de los pesos de ML y el árbol narrativo entre reinicios |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` | Narración con IA en `/simulador` (opcional; sin esto usa un evaluador local) |
+| `ML_SERVICE_URL` | Servicio Python de desarrollo (por defecto `localhost:8000`) |
+| `NEXT_PUBLIC_SITE_URL` | SEO / OpenGraph |
+| `NEXT_PUBLIC_CONTACT_*` | Contactos que se muestran junto a la confirmación |
 
 ---
 
@@ -59,10 +89,9 @@ Pegala en `DISCORD_WEBHOOK_URL`. Cada postulación te llega como mensaje formate
 
 ```bash
 npm run dev         # desarrollo
-npm run build       # build de producción (falla si hay errores de tipos)
-npm run typecheck   # sólo TypeScript
-npm run check       # typecheck + lint
-npm run db:setup    # crea/actualiza las tablas
+npm run build        # build de producción (falla si hay errores de tipos)
+npm run typecheck    # sólo TypeScript
+npm run check        # typecheck + lint
 ```
 
 ---
@@ -70,15 +99,15 @@ npm run db:setup    # crea/actualiza las tablas
 ## Deploy
 
 ### Vercel (recomendado)
-Importás el repo, cargás las variables de entorno y listo. Cero configuración extra.
+Importás el repo, cargás las variables que quieras usar y listo — cero
+configuración manual. `vercel.json` ya declara el framework.
 
 ### Netlify
-El `netlify.toml` ya está listo con `@netlify/plugin-nextjs`.
-No declares `publish`: el plugin maneja la salida. La combinación
-`publish=".next"` + `output:"standalone"` era justamente lo que rompía los deploys.
+`netlify.toml` incluido, con `@netlify/plugin-nextjs`. No declares `publish`
+manualmente: el plugin maneja la salida.
 
-**Después de deployar, probá vos mismo el formulario.** Si aparece en `/admin`
-(o te llega a Discord), está todo conectado.
+**Probá el formulario vos mismo después de deployar.** Si te llega por
+Discord o aparece en tu Google Form, está todo conectado.
 
 ---
 
@@ -87,38 +116,40 @@ No declares `publish`: el plugin maneja la salida. La combinación
 ```
 app/
   (marketing)/page.tsx      Home
-  campanias/                Listado y detalle de campañas
-  simulador/                Aventura interactiva (53 escenas + ML de 8 ejes)
-  laboratorio/               Demo del motor híbrido Python/TS
-  bestiario/                Criaturas del SRD 5.1 en vivo
-  videos/                   Videoteca
-  admin/                    Panel privado (no indexado)
-    modelo/                 Ajuste de pesos del recomendador
+  campanias/                 Listado y detalle de campañas
+  simulador/                 Aventura de 53 escenas (motor de ML de 8 ejes)
+  encrucijada/                Escena corta con árbol narrativo Python/TS
+  bestiario/                 Criaturas del SRD 5.1 en vivo
+  videos/                     Videoteca
+  admin/                       Panel privado (no indexado)
+    modelo/                    Ajuste de pesos del recomendador
+    arbol/                      Editor del árbol narrativo
   api/
-    rpg-signup/             POST público de postulaciones
-    simulate/                Árbol narrativo (Python con fallback a TS)
-    ml/classify, ml/feedback  Motor de perfil de 8 dimensiones
-    campaigns/               Campañas en JSON
-    admin/                    Login, logout y listado protegido
+    rpg-signup/                Google Forms + Discord, sin base de datos
+    simulate/                  Árbol narrativo (Python con fallback a TS)
+    ml/classify, ml/feedback    Motor de perfil de 8 dimensiones
+    admin/tree/                 CRUD de nodos del árbol (admin)
+    campaigns/, dnd5e/           APIs de contenido
 components/
-  form/SignupForm.tsx        Formulario único de inscripción
-  audio/AudioPlayer.tsx      Música de fondo (Howler.js)
-  dice/dice3d.tsx            D20 real en Three.js
-  ui.tsx                     Kit de UI (todos los colores por tokens)
+  form/SignupForm.tsx          Formulario único de inscripción
+  audio/AudioPlayer.tsx        Música de fondo (Howler.js)
+  dice/dice3d.tsx              D20 real en Three.js
+  admin/tree-editor.tsx        Editor visual del árbol narrativo
 data/
-  ml-simulation-dataset.ts   Arquetipos, campañas, corpus de entrenamiento
-  role_tree_dataset.json     Árbol narrativo del motor híbrido
-  simulator/scenes.es.json   Las 53 escenas del simulador principal
+  ml-simulation-dataset.ts     Arquetipos, campañas, corpus de entrenamiento
+  role_tree_dataset.json       Árbol narrativo de la Encrucijada
+  simulator/scenes.es.json     Las 53 escenas del simulador principal
 lib/
-  db.ts             Postgres con pooling para serverless
-  auth.ts           Sesión admin con cookie firmada (HMAC)
-  notify.ts         Webhook de Discord
-  signup-backup.ts  Cola de reintento local si falla el envío
-  ml/               Vectorización, k-NN, recomendación, pesos
-  ai/tree-fallback.ts  Motor TS equivalente al servicio Python
-ml_service/          FastAPI + scikit-learn (sólo desarrollo local)
-public/art/          Ilustraciones SVG propias
-public/audio/         Pistas de música (no incluidas, ver su README)
+  google-forms.ts              Mapeo de campos y envío server-side
+  notify.ts                    Webhook de Discord
+  signup-backup.ts             Cola de reintento local
+  kv.ts                        Persistencia opcional vía Upstash Redis
+  auth.ts                      Sesión admin con cookie firmada (HMAC)
+  ml/                          Vectorización, k-NN, recomendación, pesos
+  ai/tree-fallback.ts           Motor TS del árbol narrativo
+ml_service/                    FastAPI + scikit-learn (sólo desarrollo local)
+public/art/                    Ilustraciones SVG propias
+public/audio/                   Pistas de música (no incluidas, ver su README)
 ```
 
 ---
@@ -126,286 +157,146 @@ public/audio/         Pistas de música (no incluidas, ver su README)
 ## Editar contenido
 
 - **Campañas** → `data/campaigns.ts`
-- **Videos** → `data/videos.ts` (y `MUSIC_VIDEO_ID` para la música ambiente)
-- **Aventura del simulador** → `data/simulator/scenes.es.json`
+- **Videos** → `data/videos.ts` (y `MUSIC_VIDEO_ID` si aplica)
+- **Aventura del simulador principal** → `data/simulator/scenes.es.json`
+- **Árbol de la Encrucijada** → `data/role_tree_dataset.json`, o directamente
+  desde `/admin/arbol` sin tocar código
 - **Paleta de colores** → variables CSS al inicio de `app/globals.css`
 
-> ⚠️ Antes de publicar, verificá que cada `youtubeId` siga existiendo. Los videos
-> se borran o se hacen privados y queda un reproductor en negro.
-
 ---
 
-## Qué se arregló respecto de la versión anterior
+## Panel admin
 
-| Problema | Solución |
-|---|---|
-| El formulario posteaba a Google Forms vía iframe oculto y fallaba en silencio | Endpoint propio (`/api/rpg-signup`) que confirma de verdad |
-| Dos sistemas de inscripción en paralelo (Forms + Postgres) | Uno solo: Postgres, con Discord como respaldo |
-| `ignoreBuildErrors` tapaba errores de tipos en deploy | Build estricto |
-| `next.config.js` y `.mjs` coexistiendo | Un solo config |
-| `jsconfig.json` chocando con `tsconfig.json` | Eliminado |
-| Cookie de admin = contraseña en texto plano | Cookie firmada con HMAC y expiración |
-| Postgres sin pooling en serverless | `max: 1` + connection string con pooler |
-| `@import` de fuentes después de `@tailwind` (se descartaba) | `next/font`, auto-hospedado |
-| Imágenes hotlinkeadas de sitios ajenos con copyright | SVG propios en `public/art/` |
-| `og.png` apuntando a un CDN externo | `og.png` local y generado |
-| Preloader + cursor mágico + niebla trababan el scroll en celulares | Preloader y cursor eliminados; efectos apagados en móvil |
-| Formulario de 4 pasos y 13 campos | 1 paso, 3 campos obligatorios |
-| `/admin` linkeado en el menú público y en el sitemap | Fuera del menú, `noindex` y bloqueado en robots.txt |
+`/admin/login` acepta la clave de `ADMIN_PASSWORD`. Sin esa variable
+configurada, acepta **`admin123`** — está escrito en este código fuente y no
+es secreto. Sigue pasando por cookie firmada (HMAC), comparación en tiempo
+constante y rate limiting, pero **configurá tu propia clave antes de publicar
+el sitio**. La pantalla de login lo recuerda con una advertencia visible.
 
----
-
-## Simulador con IA y dados
-
-### Texto libre
-En cualquier escena podés elegir una opción **o escribir tu propia acción**.
-El servidor narra el intento, mide tu perfil y fija una dificultad; después tirás
-el d20 y el dado decide si sale.
-
-Punto de diseño importante: la narración nunca dice "lo lográs". Si lo dijera,
-escribir "gano la pelea" sería ganar la pelea. La IA describe el intento y la
-reacción del mundo; el resultado lo define la tirada.
-
-### Sin API key también funciona
-Si no configurás `GEMINI_API_KEY` ni `OPENAI_API_KEY`, el simulador usa un
-evaluador local por léxico (`lib/ai/heuristic.ts`): detecta el tipo de acción y
-narra con plantillas. Menos inteligente, pero el sitio nunca queda roto por
-depender de un servicio externo. En la interfaz aparece como "modo local".
-
-Gemini tiene capa gratis: https://aistudio.google.com/apikey
-
-### Perfil del jugador
-Cuatro ejes que se mueven con lo que hacés:
-
-| Eje | Rango | Qué mide |
-|---|---|---|
-| Creatividad | 0–100 | Cuánto se sale del camino obvio |
-| Trabajo en equipo | 0–100 | Cuánto involucra al grupo |
-| Caótico ↔ Legal | -100–100 | Improvisa o respeta el sistema |
-| Rol ↔ Combate | -100–100 | Resuelve hablando o peleando |
-
-Al terminar una partida podés postularte con ese perfil: viaja en la postulación
-(`traits` jsonb + etiquetas) y lo ves en `/admin`. Sirve para armar mesas
-compatibles antes de la primera charla.
-
-### El dado
-`components/dice/d20.tsx`. SVG de icosaedro con tumble 3D vía `rotate3d`
-(compuesto en GPU) y sonido sintetizado con Web Audio — cero archivos de audio.
-El resultado usa `crypto.getRandomValues` con rechazo del resto para no sesgar,
-y se calcula **antes** de la animación: la animación muestra el resultado, no lo
-decide.
-
----
-
-## Bestiario
-
-`/bestiario` trae criaturas del SRD 5.1 desde [dnd5eapi.co](https://www.dnd5eapi.co)
-(gratis, abierta, contenido OGL). Va por un proxy propio (`/api/dnd5e`) que
-cachea 24 h, con whitelist de recursos para que nadie use el dominio como open
-proxy. Podés tirar un ataque contra la CA de cada criatura.
-
----
-
-## Por qué no hay dependencias nuevas
-
-| Lo típico | Qué se usó | Motivo |
-|---|---|---|
-| `@google/generative-ai` / `openai` | `fetch` a la REST API | Es un POST con JSON; el SDK sólo suma cold start |
-| `three` / `react-three-fiber` | SVG + CSS `rotate3d` | ~600 kb para un dado no cierra en móvil |
-| `@xenova/transformers` / WebLLM | Inferencia en el servidor | Un modelo en browser son 100 MB–varios GB antes del primer token |
-| `howler` / archivos de audio | Web Audio sintetizado | 0 kb, funciona offline |
-
-El bundle del cliente no creció nada respecto de la versión anterior.
+Desde ahí:
+- **Enlaces directos** a tu Google Form y su hoja de respuestas.
+- **`/admin/modelo`** — ajustá cuánto pesa cada una de las 8 dimensiones al
+  recomendar campañas, o corregí una recomendación para que el motor aprenda
+  (regla incremental tipo perceptrón, tasa 0.08 para que una sola corrección
+  no reconfigure todo).
+- **`/admin/arbol`** — agregá o editá nodos del árbol narrativo de la
+  Encrucijada, hasta 15 opciones por nodo, sin tocar código. Los nodos que
+  agregás se combinan con el dataset base en tiempo de lectura; el archivo
+  JSON original nunca se modifica (en Vercel el filesystem del deploy es de
+  sólo lectura).
 
 ---
 
 ## Motor de Machine Learning
 
-### Cómo funciona
-Cada acción de texto libre pasa por `POST /api/ml/classify`:
+Dos motores de ML conviven en el sitio, con propósitos distintos:
 
-1. **Vectorización** (`lib/ml/vectorize.ts`): normaliza, tokeniza, aplica un
-   stemmer del español y arma una bolsa de palabras TF-IDF.
-2. **k-NN**: similitud coseno contra 47 ejemplos etiquetados
-   (`data/ml-simulation-dataset.ts`), k=5 con voto ponderado.
-3. **Perfil**: promedio ponderado de los vecinos sobre 8 dimensiones. Los turnos
-   recientes pesan más (`blendVectors`).
-4. **Recomendación** (`lib/ml/recommend.ts`): coseno ponderado contra 7 perfiles
-   de campaña y 7 arquetipos de jugador.
+### 1. Perfil de 8 dimensiones (simulador principal, `/simulador`)
+Cada acción de texto libre pasa por `/api/ml/classify`: vectorización TF-IDF
+con stemmer del español, k-NN (k=5) contra 47 ejemplos etiquetados
+(`data/ml-simulation-dataset.ts`), promedio ponderado sobre 8 dimensiones
+(combate, creatividad, equipo, ley, riesgo, oscuridad, regla, humor), y
+recomendación de campaña por coseno ponderado. Los pesos se ajustan en
+`/admin/modelo` y se guardan en Upstash si está configurado.
 
-Las 8 dimensiones: combate, creatividad, equipo, ley, riesgo, oscuridad, regla, humor.
+### 2. Árbol narrativo (Encrucijada, `/encrucijada`)
+Un árbol de decisiones más chico (`data/role_tree_dataset.json`, nodo raíz
+con 10 opciones) que se resuelve contra un servicio **Python con FastAPI y
+scikit-learn** (`ml_service/`) si está corriendo en desarrollo, o contra un
+motor TypeScript equivalente (`lib/ai/tree-fallback.ts`) que es el que corre
+siempre en producción. Clasifica en tres arquetipos: Guerrero Implacable,
+Estratega Erudito, Líder Inspirador.
 
-### Por qué k-NN y no un transformer
-`@xenova/transformers` y WebLLM descargan entre 50 MB y varios GB antes del
-primer resultado. El tráfico de este sitio llega desde Instagram, en celular.
-Con un vocabulario acotado (acciones de rol en español) TF-IDF + k-NN rinde
-parecido, corre en microsegundos y —esto importa más— **es explicable**: la
-respuesta incluye los vecinos que la produjeron, así que se puede auditar por
-qué recomendó lo que recomendó.
+**Por qué el motor de producción es TypeScript y no Python:** Vercel y
+Netlify son serverless — no hay proceso Python persistente escuchando en
+ningún puerto ahí. Levantar `ml_service/` es sólo para desarrollo local:
 
-### El modelo aprende
-`/admin/modelo` tiene dos formas de ajustarlo:
+```bash
+cd ml_service
+pip install -r requirements.txt
+uvicorn app:app --port 8000 --reload
+```
 
-- **Sliders**: cada dimensión pesa de 0 (apagada) a 3 (triplicada).
-- **Corrección**: cargás un perfil, indicás qué recomendó el motor y qué
-  correspondía. Los pesos se mueven en esa dirección (regla tipo perceptrón,
-  `learnFromFeedback`) y se renormalizan para que cambie la *forma* del vector
-  de pesos, no su magnitud.
-
-La tasa de aprendizaje es 0.08 a propósito: diez correcciones consistentes
-mueven la aguja, una sola casi no.
-
-Todo se persiste en `ml_weights` y se audita en `ml_feedback`.
-
-### Líneas rojas: descarte, no penalización
-Si alguien marcó que no tolera horror corporal, la campaña de horror corporal
-**se descarta**, no baja de puesto. Ofrecer una mesa que cruza un límite
-declarado es exactamente el error que hace que alguien no vuelva.
+Los nodos que se agregan desde `/admin/arbol` los ve el motor TypeScript (el
+que realmente corre en producción); el servicio Python de desarrollo lee el
+JSON estático sin esos agregados — es una limitación conocida y aceptable
+dado ese rol de acelerador de desarrollo, nunca fuente de verdad.
 
 ---
 
 ## Dado 3D
 
-`components/dice/dice3d.tsx`. Icosaedro real con Three.js: 20 caras, normales
-calculadas, números generados en canvas, tres luces (dorada, púrpura, rebote
-cálido) y sombra proyectada.
+`components/dice/dice3d.tsx`. Icosaedro real en Three.js: 20 caras con
+normales calculadas, `MeshStandardMaterial` dorado/místico, números generados
+en canvas (no SVG) mapeados como textura sobre la malla, tres luces (dorada,
+púrpura, rebote cálido) y sombra proyectada sobre un plano. Nada de SVG plano
+ni CSS 2D en la implementación principal.
 
 - **Física propia**, no `cannon-es` ni `rapier`: integración de velocidad
-  angular con damping exponencial y rebote vertical amortiguado. Un motor
-  completo son ~500 kb para simular un cuerpo rebotando en un plano.
-- **El resultado se sortea antes de animar** con `crypto.getRandomValues` y
-  rechazo del resto; después el dado se orienta para que esa cara quede arriba.
-  Dejar que la física decida suena elegante hasta que el dado queda apoyado en
-  una arista.
-- **Fallback sin WebGL**: si el contexto no se crea, aparece un dado plano
-  funcional. Pasa en navegadores viejos y con aceleración por hardware apagada.
-- Cleanup completo de geometrías, materiales, texturas y renderer: sin esto cada
-  montaje filtra un contexto WebGL y el navegador corta a los ~16.
+  angular con damping exponencial y rebote vertical amortiguado en los tres
+  ejes.
+- **El resultado (1 a 20) se sortea antes de animar**, con
+  `crypto.getRandomValues` y rechazo del resto para no sesgar; el dado se
+  orienta después para que esa cara quede arriba. Dejar que la física decida
+  suena elegante hasta que el dado queda apoyado en una arista.
+- **Fallback sin WebGL**: si el contexto no se puede crear (navegadores
+  viejos, aceleración por hardware apagada), aparece un dado plano funcional
+  en vez de romper la página — nunca es el camino principal.
 
 ---
 
-## Audio: qué estaba mal y qué se hizo
+## Audio
 
-El sistema anterior generaba interferencia por cuatro razones concretas:
+`components/audio/AudioPlayer.tsx` usa Howler.js con pistas de audio reales
+cargadas desde `/public/audio/` — nada de osciladores sintéticos generando la
+música de fondo. Los archivos no vienen incluidos (ver
+`public/audio/README.md` para dónde conseguirlos gratis); si falta un
+archivo, el reproductor no rompe ni muestra ningún aviso, simplemente no
+suena nada hasta que pongas el mp3 correspondiente.
 
-| Problema | Por qué sonaba mal | Solución |
-|---|---|---|
-| `gain.value = x` de golpe | Un salto instantáneo de amplitud es un impulso: contiene todas las frecuencias. Ese era el "clic". | Todo sube y baja con rampas ≥20 ms |
-| Ruido blanco con lowpass suave | Eso es siseo, no ambiente | Pad armónico: senoidales en octavas y quintas justas |
-| Fuentes sumadas sin control | Los picos coincidían, la señal pasaba de 1.0 y la placa clippeaba | `DynamicsCompressor` en el master |
-| Un `AudioContext` por componente | Varios grafos compitiendo | Un solo bus con canales de música y efectos |
-
-Los presets están en `lib/audio/ambient.ts`. Cada uno es un acorde con
-relaciones 1 : 1.5 : 2 : 3 y un LFO de 0.04–0.12 Hz sobre el filtro, para que
-respire.
+El SFX corto del dado (tirada, crítico, pifia) sí sigue sintetizado con Web
+Audio: son efectos de ~50ms con envolvente completa, no ambiente de fondo, y
+ahí la síntesis nunca fue el problema — el ruido de versiones anteriores
+venía de osciladores sin envolvente y ruido blanco sin filtrar, no de la
+síntesis en sí misma.
 
 ### Narración
-`components/simulator/narration.tsx`. Elige la mejor voz en español disponible
-puntuándolas (prioriza es-AR, locales y neurales; penaliza las "compact" de iOS),
-y habla frase por frase modulando pitch y velocidad —las preguntas suben, la
-última frase baja y se ralentiza—. Frases separadas además esquivan el bug viejo
-de Chrome que corta los textos largos a los ~15 segundos.
+`components/simulator/narration.tsx`. Web Speech API con la mejor voz en
+español disponible (prioriza es-AR, locales y neurales), modulando pitch y
+ritmo por frase — las preguntas suben, la última frase se ralentiza. El
+efecto de máquina de escribir acompaña siempre, no sólo como respaldo cuando
+falla la voz.
 
-El efecto de máquina de escribir acompaña siempre, no sólo como respaldo: la
-mayoría navega en silencio desde el celular.
+---
+
+## Bestiario
+
+`/bestiario` trae criaturas del SRD 5.1 desde
+[dnd5eapi.co](https://www.dnd5eapi.co) (gratis, abierta, contenido OGL) vía
+un proxy propio (`/api/dnd5e`) que cachea 24h con whitelist de recursos.
 
 ---
 
 ## Dependencias
 
-Sólo se agregó **`three`**. Todo lo demás está implementado en el proyecto:
-
-| Lo típico | Qué se usó | Motivo |
+| Necesidad | Qué se usó | Por qué no la alternativa típica |
 |---|---|---|
-| `@react-three/fiber` + `drei` | Three.js pelado | Un objeto con loop propio no necesita reconciliador |
-| `cannon-es` / `rapier` | Física propia (~60 líneas) | ~500 kb para un cuerpo rígido |
-| `@xenova/transformers` | k-NN + TF-IDF | 50 MB–varios GB de descarga |
-| `canvas-confetti` | `lib/fx/confetti.ts` | 60 líneas con la paleta del sitio |
-| `howler` / `tone` + mp3 | Web Audio directo | 0 kb, funciona offline |
-
----
-
-## v7: motor híbrido Python/TypeScript, admin y respaldo de formulario
-
-### Motor narrativo híbrido (`/laboratorio`)
-
-Además del simulador principal (53 escenas, motor TS + ML de 8 dimensiones,
-sin cambios en v7), hay un segundo árbol narrativo más chico
-(`data/role_tree_dataset.json`, 11 nodos) pensado para mostrar el motor
-híbrido en acción:
-
-- **`ml_service/`** — servicio FastAPI con scikit-learn (TF-IDF + similitud
-  coseno) que clasifica el texto libre contra las keywords de cada nodo.
-  **Sólo para desarrollo local.** Se levanta con:
-  ```bash
-  cd ml_service
-  pip install -r requirements.txt
-  uvicorn app:app --port 8000 --reload
-  ```
-- **`app/api/simulate/route.ts`** — intenta ese servicio con un timeout de
-  1.5s; si no responde (lo normal en producción, donde no hay proceso Python
-  escuchando en ningún puerto), usa `lib/ai/tree-fallback.ts`, un motor
-  TypeScript que reimplementa el mismo algoritmo contra el mismo dataset. El
-  jugador nunca nota el cambio; la etiqueta "motor: python / typescript" en
-  `/laboratorio` lo hace visible para quien quiera confirmarlo.
-
-**Por qué esto no es el motor de producción por defecto**: Vercel y Netlify
-son serverless. No hay dónde correr un proceso Python persistente sin agregar
-un host aparte (Railway, Render, Fly.io) y mantener dos servicios
-sincronizados. El motor TypeScript vive en el mismo deploy que el resto del
-sitio y hace exactamente el mismo trabajo.
-
-### Panel admin: contraseña por defecto
-
-Sin `ADMIN_PASSWORD` configurada, `/admin` acepta `admin123`. **Esa clave está
-escrita en este código fuente y en el historial de esta conversación — no es
-secreta.** Sigue pasando por cookie firmada (HMAC), comparación en tiempo
-constante y rate limiting, pero el valor en sí es público a propósito, para
-que el panel funcione sin fricción en desarrollo. La pantalla de login te lo
-recuerda con una advertencia visible. **Configurá tu propia `ADMIN_PASSWORD`
-(mínimo 8 caracteres) antes de publicar el sitio.**
-
-### Formulario: un solo componente, respaldo sin Google Forms
-
-`components/form/SignupForm.tsx` es el único formulario de inscripción. Si el
-envío al servidor falla (sin backend configurado, sin conexión, error 5xx), la
-postulación **no se pierde ni se manda por un mecanismo que no se puede
-verificar**: se guarda en `localStorage` (`lib/signup-backup.ts`) y se
-reintenta sola apenas vuelve la conexión (`components/system/backup-flush.tsx`,
-montado una vez en el layout).
-
-Esto reemplaza deliberadamente al viejo patrón de "si todo falla, mandar por
-un POST oculto a Google Forms": ese fue el bug original de este proyecto
-(turno 1) — Google bloquea el framing de `/formResponse`, así que el envío
-fallaba en silencio y la persona veía "enviado" sin que nada se guardara.
-Reintroducirlo hubiera reintroducido exactamente ese bug. El respaldo local
-nunca miente sobre si algo se envió, y nunca pierde el dato tampoco.
-
-### Reproductor de música: Howler.js con archivos reales
-
-`components/audio/AudioPlayer.tsx` reemplaza el generador de osciladores
-sintéticos por pistas de audio de verdad, cargadas con Howler.js desde
-`/public/audio/`. Los archivos no vienen incluidos — ver
-`public/audio/README.md` para dónde conseguirlos gratis (Pixabay Music,
-Freesound, itch.io). Si falta el archivo de un tema, el botón se ve pero avisa
-"sin pista" en vez de fallar en silencio o sonar roto.
-
-El SFX corto del dado (tirada, crítico, pifia) sigue sintetizado con Web
-Audio: son efectos de ~50ms con envolvente, no ambiente de fondo, y ahí la
-síntesis nunca fue el problema.
+| Dado 3D | Three.js puro | `@react-three/fiber` suma un reconciliador para un objeto con loop propio |
+| Física del dado | ~60 líneas propias | `cannon-es`/`rapier` son ~500 kb para un cuerpo rebotando en un plano |
+| Perfil de texto libre | TF-IDF + k-NN propio | Un transformer (`@xenova/transformers`) son 50 MB–varios GB antes del primer resultado |
+| Confetti en críticos | `lib/fx/confetti.ts` (~60 líneas) | Evita una dependencia más para un efecto simple |
+| Persistencia opcional | Upstash Redis vía `fetch` puro | Sin SDK, sin SQL, mismo patrón que el resto de las integraciones externas del proyecto |
+| Música de fondo | Howler.js + archivos reales | Osciladores sintéticos para música de fondo larga suenan a ruido, no a ambiente |
 
 ---
 
 ## Dónde publicarlo
 
-La web no consigue jugadores por sí sola: es el lugar al que mandás a la gente
-que te encontró en otro lado. En orden de efectividad real:
+La web no consigue jugadores por sí sola: es el lugar al que mandás a la
+gente que te encontró en otro lado. En orden de efectividad real:
 
 1. **Discord** — servidores de rol en español y canales LFG.
 2. **Reddit** — r/RolArgentina, r/lfg, r/DnDLatino.
-3. **Facebook** — grupos de rol regionales (siguen siendo enormes en Argentina).
+3. **Facebook** — grupos de rol regionales.
 4. **Instagram / TikTok** — clips cortos de escenas de tu mesa, no el link pelado.
 5. **Comiquerías y jugueterías** — un flyer con QR funciona sorprendentemente bien.
-
-Usá el campo `source` (ya viaja en cada postulación) para saber qué canal te
-está trayendo gente de verdad.

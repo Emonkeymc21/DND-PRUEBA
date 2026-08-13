@@ -103,7 +103,8 @@ export default function ModelClient() {
 
         {!persisted ? (
           <div className="rounded-xl border border-ember/50 bg-ember/10 p-3 text-xs text-text/85">
-            Sin <code>DATABASE_URL</code> los cambios no se guardan entre reinicios.
+            Sin Upstash configurado, los cambios se guardan en memoria y se pierden en el próximo
+            reinicio del servidor.
           </div>
         ) : null}
 

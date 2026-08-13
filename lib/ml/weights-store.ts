@@ -1,64 +1,38 @@
-import { db, isDbConfigured } from "@/lib/db";
+import { kvGet, kvSet, isKvConfigured } from "@/lib/kv";
 import { defaultWeights, sanitizeWeights, type Weights } from "@/lib/ml/recommend";
 
 /**
- * Persistencia de los pesos del modelo.
+ * Persistencia de los pesos del recomendador.
  *
- * Los pesos viven en una fila única de la tabla `ml_weights`. Si no hay base de
- * datos configurada, se usan los pesos por defecto: el motor sigue funcionando,
- * simplemente no aprende entre reinicios.
- *
- * Cache en memoria con TTL corto para no pegarle a Postgres en cada turno del
- * simulador; 60 segundos de desactualización en un recomendador de mesas de rol
- * no le hace mal a nadie.
+ * Antes vivían en Postgres. Ahora en Upstash Redis (opcional) vía lib/kv.ts,
+ * con cache en memoria de 60s para no pegarle a la red en cada turno del
+ * simulador. Sin Upstash configurado, el motor sigue funcionando con los
+ * pesos por defecto — simplemente no aprende entre reinicios del proceso.
  */
 
+const KEY = "mesa:ml:weights";
 const CACHE_TTL_MS = 60_000;
 
 let cache: { weights: Weights; at: number } | null = null;
 
 export async function loadWeights(): Promise<Weights> {
-  if (!isDbConfigured()) return defaultWeights();
-
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.weights;
 
-  try {
-    const sql = db();
-    const rows = await sql<{ weights: unknown }[]>`
-      select weights from ml_weights where id = 1 limit 1
-    `;
-
-    const weights = rows.length > 0 ? sanitizeWeights(rows[0]!.weights) : defaultWeights();
-    cache = { weights, at: Date.now() };
-    return weights;
-  } catch (err) {
-    console.error("[ml] no se pudieron leer los pesos:", err);
-    return defaultWeights();
-  }
+  const stored = await kvGet<Weights>(KEY);
+  const weights = stored ? sanitizeWeights(stored) : defaultWeights();
+  cache = { weights, at: Date.now() };
+  return weights;
 }
 
-export async function saveWeights(weights: Weights, note: string | null = null): Promise<boolean> {
-  if (!isDbConfigured()) return false;
-
-  try {
-    const sql = db();
-    await sql`
-      insert into ml_weights (id, weights, note, updated_at)
-      values (1, ${JSON.stringify(weights)}::jsonb, ${note}, now())
-      on conflict (id) do update
-        set weights = excluded.weights,
-            note = excluded.note,
-            updated_at = now()
-    `;
-    cache = { weights, at: Date.now() };
-    return true;
-  } catch (err) {
-    console.error("[ml] no se pudieron guardar los pesos:", err);
-    return false;
-  }
+export async function saveWeights(weights: Weights): Promise<boolean> {
+  cache = { weights, at: Date.now() };
+  return kvSet(KEY, weights);
 }
 
-/** Invalida el cache: lo usa el endpoint de feedback tras escribir. */
 export function invalidateWeightsCache(): void {
   cache = null;
+}
+
+export function weightsPersistenceAvailable(): boolean {
+  return isKvConfigured();
 }

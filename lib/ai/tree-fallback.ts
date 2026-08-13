@@ -1,66 +1,29 @@
-import treeData from "@/data/role_tree_dataset.json";
 import { normalize } from "@/lib/ai/heuristic";
+import { getMergedTree, type TreeNode, type TreeOption } from "@/lib/ml/tree-store";
 
 /**
  * Motor TypeScript equivalente al de ml_service/ml_engine.py.
  *
- * Implementa la MISMA lógica (TF-IDF simplificado + coseno sobre las
- * keywords de cada opción) para que el resultado sea consistente entre el
- * servicio Python (dev) y este fallback (siempre disponible, incluido
- * producción serverless donde Python no corre).
- *
- * No es una reescritura "aproximada": usa el mismo dataset
- * (role_tree_dataset.json) y el mismo umbral de similitud, así que un mismo
- * texto da la misma decisión navegue por el camino que navegue.
+ * Misma lógica (bolsa de palabras + similitud coseno sobre las keywords de
+ * cada opción), pero resuelve contra el dataset COMBINADO (base +
+ * agregados del Master vía /admin/arbol), no contra el JSON estático solo.
+ * Esto es lo que corre siempre en producción — el servicio Python es sólo
+ * un acelerador de desarrollo que lee el JSON estático sin overlay.
  */
-
-type ArchetypeWeights = Record<string, number>;
-
-type TreeOption = {
-  id: string;
-  label: string;
-  keywords: string[];
-  archetype_weight: ArchetypeWeights;
-  next: string;
-  consequence: string;
-};
-
-type TreeNode = {
-  id: string;
-  title: string;
-  text: string;
-  end?: boolean;
-  archetype_result?: string;
-  options: TreeOption[];
-};
-
-type TreeDataset = {
-  root_node: string;
-  nodes: Record<string, TreeNode>;
-  archetypes: Record<
-    string,
-    { tagline: string; description: string; suggested_class: string; master_tip: string }
-  >;
-};
-
-const DATA = treeData as unknown as TreeDataset;
 
 const MIN_SIMILARITY = 0.12;
 
-/** Bolsa de palabras simple: cuenta ocurrencias tras normalizar y tokenizar. */
 function bagOf(text: string): Map<string, number> {
   const bag = new Map<string, number>();
   const tokens = normalize(text)
     .split(" ")
     .filter((w) => w.length > 1);
-
   for (const t of tokens) bag.set(t, (bag.get(t) ?? 0) + 1);
   return bag;
 }
 
 function cosine(a: Map<string, number>, b: Map<string, number>): number {
   const [small, large] = a.size <= b.size ? [a, b] : [b, a];
-
   let dot = 0;
   for (const [term, va] of small) {
     const vb = large.get(term);
@@ -77,8 +40,25 @@ function cosine(a: Map<string, number>, b: Map<string, number>): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-export function getNode(nodeId: string): TreeNode | null {
-  return DATA.nodes[nodeId] ?? null;
+function matchOption(node: TreeNode, playerText: string): { option: TreeOption | null; similarity: number } {
+  const options = node.options ?? [];
+  if (options.length === 0) return { option: null, similarity: 0 };
+
+  const query = bagOf(playerText);
+  let best: TreeOption | null = null;
+  let bestSim = 0;
+
+  for (const opt of options) {
+    const doc = [opt.label, ...opt.keywords, ...opt.keywords].join(" ");
+    const sim = cosine(query, bagOf(doc));
+    if (sim > bestSim) {
+      bestSim = sim;
+      best = opt;
+    }
+  }
+
+  if (!best || bestSim < MIN_SIMILARITY) return { option: null, similarity: bestSim };
+  return { option: best, similarity: bestSim };
 }
 
 export type TreeTurnResult = {
@@ -95,14 +75,16 @@ export type TreeTurnResult = {
     archetypeResult: string | null;
     options: Array<{ id: string; label: string }>;
   } | null;
-  archetypeWeight?: ArchetypeWeights;
+  archetypeWeight?: Record<string, number>;
   message?: string;
   availableOptions?: string[];
   error?: string;
 };
 
-export function resolveTreeTurn(nodeId: string, playerText: string): TreeTurnResult {
-  const node = getNode(nodeId);
+export async function resolveTreeTurn(nodeId: string, playerText: string): Promise<TreeTurnResult> {
+  const dataset = await getMergedTree();
+  const node = dataset.nodes[nodeId];
+
   if (!node) {
     return { ok: false, matched: false, similarity: 0, error: `Nodo '${nodeId}' no existe.` };
   }
@@ -112,23 +94,9 @@ export function resolveTreeTurn(nodeId: string, playerText: string): TreeTurnRes
     return { ok: true, matched: false, similarity: 0, message: "Este nodo no tiene más opciones." };
   }
 
-  const query = bagOf(playerText);
+  const { option: best, similarity: bestSim } = matchOption(node, playerText);
 
-  let best: TreeOption | null = null;
-  let bestSim = 0;
-
-  for (const opt of options) {
-    // Mismo documento que arma el lado Python: label + keywords duplicadas
-    // (para que pesen más en la bolsa de palabras).
-    const doc = [opt.label, ...opt.keywords, ...opt.keywords].join(" ");
-    const sim = cosine(query, bagOf(doc));
-    if (sim > bestSim) {
-      bestSim = sim;
-      best = opt;
-    }
-  }
-
-  if (!best || bestSim < MIN_SIMILARITY) {
+  if (!best) {
     return {
       ok: true,
       matched: false,
@@ -138,7 +106,7 @@ export function resolveTreeTurn(nodeId: string, playerText: string): TreeTurnRes
     };
   }
 
-  const nextNode = getNode(best.next);
+  const nextNode = dataset.nodes[best.next];
 
   return {
     ok: true,
@@ -160,21 +128,25 @@ export function resolveTreeTurn(nodeId: string, playerText: string): TreeTurnRes
   };
 }
 
-export function classifyArchetype(accumulated: ArchetypeWeights): {
+export async function classifyArchetype(accumulated: Record<string, number>): Promise<{
   id: string | null;
-  info: (typeof DATA.archetypes)[string] | null;
-  scores: ArchetypeWeights;
-} {
+  info: { tagline: string; description: string; suggested_class: string; master_tip: string } | null;
+  scores: Record<string, number>;
+}> {
   const entries = Object.entries(accumulated);
   if (entries.length === 0) return { id: null, info: null, scores: {} };
 
+  const dataset = await getMergedTree();
   const total = entries.reduce((acc, [, v]) => acc + v, 0) || 1;
-  const scores: ArchetypeWeights = {};
+  const scores: Record<string, number> = {};
   for (const [k, v] of entries) scores[k] = Number((v / total).toFixed(4));
 
   const topId = entries.reduce((a, b) => (scores[a[0]]! >= scores[b[0]]! ? a : b))[0];
 
-  return { id: topId, info: DATA.archetypes[topId] ?? null, scores };
+  return { id: topId, info: dataset.archetypes[topId] ?? null, scores };
 }
 
-export const ROOT_NODE_ID = DATA.root_node;
+export async function getRootNodeId(): Promise<string> {
+  const dataset = await getMergedTree();
+  return dataset.root_node;
+}

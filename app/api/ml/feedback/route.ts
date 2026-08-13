@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminRequest } from "@/lib/auth";
-import { db, isDbConfigured } from "@/lib/db";
+import { kvPushCapped, kvList } from "@/lib/kv";
 import { learnFromFeedback, sanitizeWeights, defaultWeights } from "@/lib/ml/recommend";
-import { loadWeights, saveWeights, invalidateWeightsCache } from "@/lib/ml/weights-store";
+import { loadWeights, saveWeights, invalidateWeightsCache, weightsPersistenceAvailable } from "@/lib/ml/weights-store";
 import { CAMPAIGN_PROFILES, DIMENSIONS, type Vector } from "@/data/ml-simulation-dataset";
 
 /**
@@ -14,11 +14,15 @@ import { CAMPAIGN_PROFILES, DIMENSIONS, type Vector } from "@/data/ml-simulation
  *    motor mueve los pesos en esa dirección (aprendizaje incremental).
  *  - "manual": el Master fija los pesos a mano desde el panel.
  *
- * GET devuelve los pesos actuales y el historial de correcciones.
+ * GET devuelve los pesos actuales y el historial de correcciones. Todo vive
+ * en Upstash Redis (lib/kv.ts) en vez de Postgres; sin Upstash configurado,
+ * los pesos funcionan igual en memoria del proceso y el historial queda vacío.
  */
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const FEEDBACK_KEY = "mesa:ml:feedback";
 
 const CAMPAIGN_IDS = CAMPAIGN_PROFILES.map((c) => c.id) as [string, ...string[]];
 
@@ -49,10 +53,9 @@ const Schema = z.discriminatedUnion("mode", [
 ]);
 
 type FeedbackHistoryRow = {
-  id: number;
   predicted: string;
   actual: string;
-  created_at: string;
+  createdAt: string;
 };
 
 export async function GET() {
@@ -61,35 +64,14 @@ export async function GET() {
   }
 
   const weights = await loadWeights();
-
-  // postgres.js devuelve un RowList (array-like con metadata propia, no un
-  // Array plano), así que hay que tipar la query con el genérico en vez de
-  // declarar la variable como unknown[] y asignarle el resultado — eso es
-  // justo lo que TypeScript rechaza al compilar.
-  let history: FeedbackHistoryRow[] = [];
-  if (isDbConfigured()) {
-    try {
-      const sql = db();
-      const rows = await sql<FeedbackHistoryRow[]>`
-        select id, predicted, actual, created_at
-        from ml_feedback
-        order by created_at desc
-        limit 50
-      `;
-      // Copia a un array plano: nunca exponer el RowList tal cual fuera de
-      // esta función, para no repetir el mismo problema de tipos aguas abajo.
-      history = [...rows];
-    } catch (err) {
-      console.error("[ml/feedback] GET historial:", err);
-    }
-  }
+  const history = await kvList<FeedbackHistoryRow>(FEEDBACK_KEY, 50);
 
   return NextResponse.json({
     weights,
     dimensions: DIMENSIONS,
     campaigns: CAMPAIGN_PROFILES.map((c) => ({ id: c.id, name: c.name })),
     history,
-    persisted: isDbConfigured(),
+    persisted: weightsPersistenceAvailable(),
   });
 }
 
@@ -110,23 +92,20 @@ export async function POST(req: Request) {
 
   const data = parsed.data;
 
-  // --- Reset ---
   if (data.mode === "reset") {
     const w = defaultWeights();
-    await saveWeights(w, "reset manual");
+    await saveWeights(w);
     invalidateWeightsCache();
     return NextResponse.json({ ok: true, weights: w });
   }
 
-  // --- Ajuste manual ---
   if (data.mode === "manual") {
     const w = sanitizeWeights(data.weights);
-    const saved = await saveWeights(w, data.note ?? "ajuste manual");
+    const saved = await saveWeights(w);
     invalidateWeightsCache();
     return NextResponse.json({ ok: true, weights: w, persisted: saved });
   }
 
-  // --- Corrección con aprendizaje ---
   const current = await loadWeights();
   const next = learnFromFeedback(
     current,
@@ -134,26 +113,14 @@ export async function POST(req: Request) {
     data.rate,
   );
 
-  const saved = await saveWeights(next, `corrección: ${data.predicted} → ${data.actual}`);
+  const saved = await saveWeights(next);
   invalidateWeightsCache();
 
-  // Guardamos la corrección para poder auditar cómo se movió el modelo.
-  if (isDbConfigured()) {
-    try {
-      const sql = db();
-      await sql`
-        insert into ml_feedback (vector, predicted, actual, weights_after)
-        values (
-          ${JSON.stringify(data.vector)}::jsonb,
-          ${data.predicted},
-          ${data.actual},
-          ${JSON.stringify(next)}::jsonb
-        )
-      `;
-    } catch (err) {
-      console.error("[ml/feedback] no se pudo registrar la corrección:", err);
-    }
-  }
+  await kvPushCapped(
+    FEEDBACK_KEY,
+    { predicted: data.predicted, actual: data.actual, createdAt: new Date().toISOString() } satisfies FeedbackHistoryRow,
+    50,
+  );
 
   return NextResponse.json({
     ok: true,

@@ -64,7 +64,6 @@ export function TreeEngineDemo() {
   const [busy, setBusy] = React.useState(false);
   const [notMatched, setNotMatched] = React.useState<string | null>(null);
   const [consequence, setConsequence] = React.useState<string | null>(null);
-  const [engineUsed, setEngineUsed] = React.useState<"python" | "typescript" | null>(null);
   const [weights, setWeights] = React.useState<Record<string, number>>({});
   const [archetype, setArchetype] = React.useState<ArchetypeResult | null>(null);
   const [finalRoll, setFinalRoll] = React.useState<RollResult | null>(null);
@@ -85,7 +84,6 @@ export function TreeEngineDemo() {
       });
 
       const data = (await res.json()) as SimulateResponse;
-      setEngineUsed(data.engine);
 
       if (!data.ok) {
         setNotMatched(data.error ?? "Error del motor narrativo.");
@@ -124,7 +122,6 @@ export function TreeEngineDemo() {
     setInput("");
     setNotMatched(null);
     setConsequence(null);
-    setEngineUsed(null);
     setWeights({});
     setArchetype(null);
     setFinalRoll(null);
@@ -133,29 +130,6 @@ export function TreeEngineDemo() {
   return (
     <div className="space-y-4">
       <Card className="edge-top">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
-            Árbol narrativo — motor híbrido
-          </span>
-          {engineUsed ? (
-            <span
-              className={[
-                "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                engineUsed === "python"
-                  ? "border-mystic/50 bg-mystic/10 text-mystic"
-                  : "border-border/60 text-muted",
-              ].join(" ")}
-              title={
-                engineUsed === "python"
-                  ? "Respondió el servicio FastAPI local (ml_service/)"
-                  : "Fallback TypeScript: el servicio Python no está corriendo (normal en producción)"
-              }
-            >
-              motor: {engineUsed}
-            </span>
-          ) : null}
-        </div>
-
         <h2 className="font-display text-xl font-bold text-primary">{title}</h2>
         <Typewriter key={nodeId} text={text} className="mt-2 text-[15px] leading-relaxed text-text/85" />
 
