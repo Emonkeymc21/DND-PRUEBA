@@ -48,6 +48,13 @@ const Schema = z.discriminatedUnion("mode", [
   }),
 ]);
 
+type FeedbackHistoryRow = {
+  id: number;
+  predicted: string;
+  actual: string;
+  created_at: string;
+};
+
 export async function GET() {
   if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -55,16 +62,23 @@ export async function GET() {
 
   const weights = await loadWeights();
 
-  let history: unknown[] = [];
+  // postgres.js devuelve un RowList (array-like con metadata propia, no un
+  // Array plano), así que hay que tipar la query con el genérico en vez de
+  // declarar la variable como unknown[] y asignarle el resultado — eso es
+  // justo lo que TypeScript rechaza al compilar.
+  let history: FeedbackHistoryRow[] = [];
   if (isDbConfigured()) {
     try {
       const sql = db();
-      history = await sql`
+      const rows = await sql<FeedbackHistoryRow[]>`
         select id, predicted, actual, created_at
         from ml_feedback
         order by created_at desc
         limit 50
       `;
+      // Copia a un array plano: nunca exponer el RowList tal cual fuera de
+      // esta función, para no repetir el mismo problema de tipos aguas abajo.
+      history = [...rows];
     } catch (err) {
       console.error("[ml/feedback] GET historial:", err);
     }
