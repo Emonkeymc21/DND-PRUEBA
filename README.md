@@ -1,7 +1,8 @@
 # La Mesa Perdida
 
 Sitio para reclutar jugadores de rol (D&D y otros TTRPG) en español.
-Next.js 15 (App Router) · TypeScript estricto · Tailwind · Postgres.
+Next.js 15 (App Router) · TypeScript estricto · Tailwind · Postgres · Three.js
+· motor de ML propio (TS, con acelerador Python opcional).
 
 ---
 
@@ -13,9 +14,13 @@ cp .env.example .env.local     # completá las variables (ver abajo)
 npm run dev                    # http://localhost:3000
 ```
 
-El sitio **arranca y funciona sin configurar nada**. Lo único que no anda sin
-variables es el envío del formulario, que te va a avisar con un mensaje claro
-en vez de fallar en silencio.
+El sitio **arranca y funciona sin configurar nada**: sin `DATABASE_URL` ni
+webhook, las postulaciones se guardan localmente y se reintentan solas; sin
+`ADMIN_PASSWORD`, el panel usa `admin123` (ver advertencia en la sección de
+abajo); el motor de ML y el dado 3D no necesitan ninguna variable.
+
+El servicio Python (`ml_service/`) es **completamente opcional** — el sitio
+funciona igual sin él, con el motor TypeScript equivalente.
 
 ---
 
@@ -83,22 +88,37 @@ No declares `publish`: el plugin maneja la salida. La combinación
 app/
   (marketing)/page.tsx      Home
   campanias/                Listado y detalle de campañas
-  simulador/                Aventura interactiva (53 escenas)
+  simulador/                Aventura interactiva (53 escenas + ML de 8 ejes)
+  laboratorio/               Demo del motor híbrido Python/TS
+  bestiario/                Criaturas del SRD 5.1 en vivo
   videos/                   Videoteca
   admin/                    Panel privado (no indexado)
+    modelo/                 Ajuste de pesos del recomendador
   api/
     rpg-signup/             POST público de postulaciones
-    campaigns/              Campañas en JSON
-    admin/                  Login, logout y listado protegido
+    simulate/                Árbol narrativo (Python con fallback a TS)
+    ml/classify, ml/feedback  Motor de perfil de 8 dimensiones
+    campaigns/               Campañas en JSON
+    admin/                    Login, logout y listado protegido
 components/
-  forms/rpg-signup-form.tsx Formulario de 1 paso
-  ui.tsx                    Kit de UI (todos los colores por tokens)
-data/                       Contenido editable a mano
+  form/SignupForm.tsx        Formulario único de inscripción
+  audio/AudioPlayer.tsx      Música de fondo (Howler.js)
+  dice/dice3d.tsx            D20 real en Three.js
+  ui.tsx                     Kit de UI (todos los colores por tokens)
+data/
+  ml-simulation-dataset.ts   Arquetipos, campañas, corpus de entrenamiento
+  role_tree_dataset.json     Árbol narrativo del motor híbrido
+  simulator/scenes.es.json   Las 53 escenas del simulador principal
 lib/
-  db.ts       Postgres con pooling para serverless
-  auth.ts     Sesión admin con cookie firmada (HMAC)
-  notify.ts   Webhook de Discord
-public/art/   Ilustraciones SVG propias
+  db.ts             Postgres con pooling para serverless
+  auth.ts           Sesión admin con cookie firmada (HMAC)
+  notify.ts         Webhook de Discord
+  signup-backup.ts  Cola de reintento local si falla el envío
+  ml/               Vectorización, k-NN, recomendación, pesos
+  ai/tree-fallback.ts  Motor TS equivalente al servicio Python
+ml_service/          FastAPI + scikit-learn (sólo desarrollo local)
+public/art/          Ilustraciones SVG propias
+public/audio/         Pistas de música (no incluidas, ver su README)
 ```
 
 ---
@@ -302,6 +322,77 @@ Sólo se agregó **`three`**. Todo lo demás está implementado en el proyecto:
 | `@xenova/transformers` | k-NN + TF-IDF | 50 MB–varios GB de descarga |
 | `canvas-confetti` | `lib/fx/confetti.ts` | 60 líneas con la paleta del sitio |
 | `howler` / `tone` + mp3 | Web Audio directo | 0 kb, funciona offline |
+
+---
+
+## v7: motor híbrido Python/TypeScript, admin y respaldo de formulario
+
+### Motor narrativo híbrido (`/laboratorio`)
+
+Además del simulador principal (53 escenas, motor TS + ML de 8 dimensiones,
+sin cambios en v7), hay un segundo árbol narrativo más chico
+(`data/role_tree_dataset.json`, 11 nodos) pensado para mostrar el motor
+híbrido en acción:
+
+- **`ml_service/`** — servicio FastAPI con scikit-learn (TF-IDF + similitud
+  coseno) que clasifica el texto libre contra las keywords de cada nodo.
+  **Sólo para desarrollo local.** Se levanta con:
+  ```bash
+  cd ml_service
+  pip install -r requirements.txt
+  uvicorn app:app --port 8000 --reload
+  ```
+- **`app/api/simulate/route.ts`** — intenta ese servicio con un timeout de
+  1.5s; si no responde (lo normal en producción, donde no hay proceso Python
+  escuchando en ningún puerto), usa `lib/ai/tree-fallback.ts`, un motor
+  TypeScript que reimplementa el mismo algoritmo contra el mismo dataset. El
+  jugador nunca nota el cambio; la etiqueta "motor: python / typescript" en
+  `/laboratorio` lo hace visible para quien quiera confirmarlo.
+
+**Por qué esto no es el motor de producción por defecto**: Vercel y Netlify
+son serverless. No hay dónde correr un proceso Python persistente sin agregar
+un host aparte (Railway, Render, Fly.io) y mantener dos servicios
+sincronizados. El motor TypeScript vive en el mismo deploy que el resto del
+sitio y hace exactamente el mismo trabajo.
+
+### Panel admin: contraseña por defecto
+
+Sin `ADMIN_PASSWORD` configurada, `/admin` acepta `admin123`. **Esa clave está
+escrita en este código fuente y en el historial de esta conversación — no es
+secreta.** Sigue pasando por cookie firmada (HMAC), comparación en tiempo
+constante y rate limiting, pero el valor en sí es público a propósito, para
+que el panel funcione sin fricción en desarrollo. La pantalla de login te lo
+recuerda con una advertencia visible. **Configurá tu propia `ADMIN_PASSWORD`
+(mínimo 8 caracteres) antes de publicar el sitio.**
+
+### Formulario: un solo componente, respaldo sin Google Forms
+
+`components/form/SignupForm.tsx` es el único formulario de inscripción. Si el
+envío al servidor falla (sin backend configurado, sin conexión, error 5xx), la
+postulación **no se pierde ni se manda por un mecanismo que no se puede
+verificar**: se guarda en `localStorage` (`lib/signup-backup.ts`) y se
+reintenta sola apenas vuelve la conexión (`components/system/backup-flush.tsx`,
+montado una vez en el layout).
+
+Esto reemplaza deliberadamente al viejo patrón de "si todo falla, mandar por
+un POST oculto a Google Forms": ese fue el bug original de este proyecto
+(turno 1) — Google bloquea el framing de `/formResponse`, así que el envío
+fallaba en silencio y la persona veía "enviado" sin que nada se guardara.
+Reintroducirlo hubiera reintroducido exactamente ese bug. El respaldo local
+nunca miente sobre si algo se envió, y nunca pierde el dato tampoco.
+
+### Reproductor de música: Howler.js con archivos reales
+
+`components/audio/AudioPlayer.tsx` reemplaza el generador de osciladores
+sintéticos por pistas de audio de verdad, cargadas con Howler.js desde
+`/public/audio/`. Los archivos no vienen incluidos — ver
+`public/audio/README.md` para dónde conseguirlos gratis (Pixabay Music,
+Freesound, itch.io). Si falta el archivo de un tema, el botón se ve pero avisa
+"sin pista" en vez de fallar en silencio o sonar roto.
+
+El SFX corto del dado (tirada, crítico, pifia) sigue sintetizado con Web
+Audio: son efectos de ~50ms con envolvente, no ambiente de fondo, y ahí la
+síntesis nunca fue el problema.
 
 ---
 

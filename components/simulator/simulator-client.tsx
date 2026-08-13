@@ -7,8 +7,8 @@ import { Dice3D, type RollResult } from "@/components/dice/dice3d";
 import { FreeAction, type TurnPayload } from "@/components/simulator/free-action";
 import { ProfilePanel, type MlArchetype, type MlCampaign } from "@/components/simulator/profile-panel";
 import { Typewriter, useSpanishVoice, speakDramatic, stopSpeaking } from "@/components/simulator/narration";
-import { startPad, stopPad, type PadTheme } from "@/lib/audio/ambient";
-import { getBus, setMusicVolume } from "@/lib/audio/engine";
+import { AudioPlayer, type AudioTheme } from "@/components/audio/AudioPlayer";
+import { getBus } from "@/lib/audio/engine";
 import { setSfxMuted, playClick } from "@/lib/audio/sfx";
 import { zeroVector, type Vector } from "@/data/ml-simulation-dataset";
 
@@ -20,8 +20,11 @@ import { zeroVector, type Vector } from "@/data/ml-simulation-dataset";
  *
  * Cambios respecto de la versión anterior:
  * - El generador de "ambiente" que sumaba osciladores inarmónicos y ruido
- *   blanco se fue entero. Ahora el pad vive en lib/audio/ambient.ts y es un
- *   acorde con relaciones armónicas reales.
+ *   blanco se fue entero. La música de fondo ahora va por Howler.js
+ *   (components/audio/AudioPlayer.tsx) con pistas de audio reales en
+ *   /public/audio/, no síntesis. El SFX corto del dado sigue sintetizado
+ *   (lib/audio/sfx.ts) porque ahí sí tiene sentido: es un efecto de 50ms,
+ *   no algo que suene largo rato.
  * - La selección de voz y la narración se fueron a components/simulator/narration.tsx,
  *   con modulación por frase y máquina de escribir como acompañamiento.
  * - El perfil ya no son 4 ejes calculados con un léxico local: son 8
@@ -104,8 +107,8 @@ const THEME_LABEL: Record<ThemeKey, string> = {
   none: "fantasía",
 };
 
-/** El pad usa las mismas claves que el motor de escenas. */
-const THEME_TO_PAD: Record<ThemeKey, PadTheme> = {
+/** El reproductor de audio usa las mismas claves que el motor de escenas. */
+const THEME_TO_AUDIO: Record<ThemeKey, AudioTheme> = {
   fantasy: "fantasy",
   scifi: "scifi",
   anime: "anime",
@@ -141,9 +144,8 @@ export default function SimulatorClient() {
   const [sceneId, setSceneId] = React.useState<string>("choose_theme");
   const [log, setLog] = React.useState<string[]>([]);
 
-  // Audio
-  const [musicOn, setMusicOn] = React.useState(false);
-  const [musicVol, setMusicVol] = React.useState(0.6);
+  // Audio: sfx sintetizado para el dado (corto, con envolvente, sin ruido);
+  // la música de fondo va por Howler con pistas reales (AudioPlayer más abajo).
   const [sfxOn, setSfxOn] = React.useState(true);
 
   // Narración
@@ -173,19 +175,10 @@ export default function SimulatorClient() {
     setSfxMuted(!sfxOn);
   }, [sfxOn]);
 
-  React.useEffect(() => {
-    if (musicOn) startPad(THEME_TO_PAD[theme]);
-    else stopPad();
-  }, [musicOn, theme]);
-
-  React.useEffect(() => {
-    setMusicVolume(musicVol);
-  }, [musicVol]);
-
-  // El pad se corta al desmontar: si no, sigue sonando al cambiar de página.
+  // La narración se corta al desmontar; Howler se limpia solo dentro de
+  // AudioPlayer (su propio cleanup en el hook useAmbientPlayer).
   React.useEffect(() => {
     return () => {
-      stopPad();
       stopSpeaking();
     };
   }, []);
@@ -602,38 +595,7 @@ export default function SimulatorClient() {
           <div className="text-[10px] font-semibold uppercase tracking-widest text-muted">Ajustes</div>
 
           <div className="mt-3 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text/80">Música ambiente</span>
-              <button
-                type="button"
-                className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-semibold"
-                onClick={() => {
-                  unlockAudio();
-                  setMusicOn((v) => !v);
-                }}
-              >
-                {musicOn ? "ON" : "OFF"}
-              </button>
-            </div>
-
-            {musicOn ? (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-[11px] text-muted">
-                  <span>Volumen</span>
-                  <span>{Math.round(musicVol * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={musicVol}
-                  onChange={(e) => setMusicVol(parseFloat(e.target.value))}
-                  className="w-full accent-[rgb(var(--primary))]"
-                  aria-label="Volumen de la música"
-                />
-              </div>
-            ) : null}
+            <AudioPlayer theme={THEME_TO_AUDIO[theme]} />
 
             <div className="flex items-center justify-between text-xs">
               <span className="text-text/80">Sonido de dados</span>

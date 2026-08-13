@@ -12,6 +12,7 @@ const links = [
   { href: "/simulador", label: "Simulador" },
   { href: "/videos", label: "Videos" },
   { href: "/bestiario", label: "Bestiario" },
+  { href: "/laboratorio", label: "Laboratorio" },
 ];
 
 export function Header() {

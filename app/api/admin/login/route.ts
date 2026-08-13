@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { setAdminCookie, checkPassword, isPasswordConfigured } from "@/lib/auth";
+import { setAdminCookie, checkPassword } from "@/lib/auth";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -12,13 +12,6 @@ export async function POST(req: Request) {
   // Freno a la fuerza bruta: 8 intentos por IP cada 5 minutos.
   if (!rateLimit(`login:${clientIp(req)}`, 8, 5 * 60_000)) {
     return NextResponse.json({ error: "Demasiados intentos. Esperá unos minutos." }, { status: 429 });
-  }
-
-  if (!isPasswordConfigured()) {
-    return NextResponse.json(
-      { error: "ADMIN_PASSWORD no está configurada (mínimo 8 caracteres)." },
-      { status: 500 },
-    );
   }
 
   const body = await req.json().catch(() => null);

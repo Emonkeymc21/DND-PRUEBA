@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer";
 import { SITE } from "@/lib/site";
 import { Particles } from "@/components/effects/particles";
 import { MusicControl } from "@/components/music-control";
+import { BackupFlush } from "@/components/system/backup-flush";
 
 /**
  * Fuentes con next/font en vez de @import en globals.css.
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <div className="fog" aria-hidden="true" />
         <Particles />
+        <BackupFlush />
         <MusicControl />
 
         <ThemeProvider>

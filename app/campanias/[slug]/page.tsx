@@ -1,6 +1,6 @@
 import { Badge, Button, Card, Container } from "@/components/ui";
 import { CAMPAIGNS, CAMPAIGN_EXAMPLES_NOTICE } from "@/data/campaigns";
-import { RpgSignupForm } from "@/components/forms/rpg-signup-form";
+import { RpgSignupForm } from "@/components/form/SignupForm";
 
 export const metadata = { title: "Campaña" };
 

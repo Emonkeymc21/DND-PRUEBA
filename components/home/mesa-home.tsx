@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Badge, Button, Card } from "@/components/ui";
 import { VIDEOS } from "@/data/videos";
-import RpgSignupForm from "@/components/forms/rpg-signup-form";
+import RpgSignupForm from "@/components/form/SignupForm";
 import { Dice3D, type RollResult } from "@/components/dice/dice3d";
 
 type ThemeCard = {
