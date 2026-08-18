@@ -1,0 +1,106 @@
+<div class="mx-auto max-w-2xl space-y-6 py-8">
+  <div>
+    <span class="inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/60 px-3 py-1 text-xs font-medium text-text/90">
+      🌒 Encrucijada
+    </span>
+    <h1 class="title-caps mt-3 font-display text-3xl font-extrabold md:text-4xl">
+      <span class="gold-gradient">Una decisión, una historia</span>
+    </h1>
+    <p class="mt-2 max-w-2xl text-text/80">
+      Describí con tus propias palabras qué hace tu personaje. No hay opciones fijas: escribí lo que se te ocurra.
+    </p>
+  </div>
+
+  @if (phase === 'loading') {
+    <div class="text-sm text-muted">Cargando…</div>
+  }
+
+  @if (phase === 'error') {
+    <div class="rounded-2xl border border-ember/50 bg-ember/10 p-5 text-sm text-text/90">
+      No se pudo cargar la escena. Probá recargar la página.
+    </div>
+  }
+
+  @if (currentNode && (phase === 'playing' || phase === 'ended')) {
+    <div class="edge-top rounded-2xl border border-border/70 bg-card/70 p-5 shadow-lg backdrop-blur-sm">
+      <h2 class="font-display text-xl font-bold text-primary">{{ currentNode.title }}</h2>
+      <app-typewriter [text]="currentNode.text" className="mt-2 text-[15px] leading-relaxed text-text/85" />
+
+      @if (consequence) {
+        <p class="mt-3 rounded-xl border border-border/60 bg-surface/60 p-3 text-sm italic text-text/80">
+          {{ consequence }}
+        </p>
+      }
+
+      @if (phase === 'playing') {
+        <div class="mt-4 space-y-2">
+          <div class="flex gap-2">
+            <input
+              [(ngModel)]="input"
+              (keydown.enter)="send()"
+              maxlength="200"
+              placeholder="Escribí qué hace tu personaje…"
+              class="flex-1 rounded-xl border border-border/70 bg-bg/70 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
+            />
+            <button
+              type="button"
+              (click)="send()"
+              [disabled]="input.trim().length < 2"
+              class="rounded-xl border border-primary/60 bg-primary/10 px-5 py-2.5 text-sm font-bold text-primary transition hover:bg-primary/20 disabled:opacity-50"
+            >
+              Actuar
+            </button>
+          </div>
+
+          @if (notMatched) {
+            <p class="text-xs text-ember">{{ notMatched }}</p>
+          } @else {
+            <p class="text-xs text-muted">
+              Probá algo como "forzar la puerta", "leer las runas" o "avisar al grupo".
+            </p>
+          }
+        </div>
+      }
+
+      @if (phase === 'ended') {
+        <div class="mt-5 space-y-4">
+          <div class="rounded-2xl border border-primary/40 bg-primary/5 p-5">
+            <div class="text-xs font-semibold uppercase tracking-widest text-primary">Perfil final</div>
+
+            @if (archetypeInfo) {
+              <div class="mt-1 font-display text-lg font-bold text-text">{{ archetypeId }}</div>
+              <p class="text-sm italic text-text/80">{{ archetypeInfo.tagline }}</p>
+              <p class="mt-2 text-sm text-text/75">{{ archetypeInfo.description }}</p>
+              <span class="mt-2 inline-block rounded-full border border-primary/50 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                Clase: {{ archetypeInfo.suggested_class }}
+              </span>
+            } @else {
+              <p class="text-sm text-muted">Sin suficientes datos para un arquetipo claro.</p>
+            }
+
+            <div class="mt-4 border-t border-border/50 pt-4">
+              <p class="mb-2 text-center text-sm text-muted">Tirada de cierre.</p>
+              <div class="flex justify-center">
+                <app-d20-dice [size]="170" (rolled)="onFinalRoll($event)" />
+              </div>
+              @if (finalRoll) {
+                <p class="mt-2 text-center text-xs text-muted">
+                  Resultado: {{ finalRoll.roll }}
+                  {{ finalRoll.crit ? '(¡crítico!)' : finalRoll.fumble ? '(pifia)' : '' }}
+                </p>
+              }
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="restart()"
+            class="w-full rounded-xl border border-border/70 px-5 py-2.5 text-sm font-semibold text-text/85 transition hover:border-primary/70 hover:text-primary"
+          >
+            🔁 Empezar de nuevo
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

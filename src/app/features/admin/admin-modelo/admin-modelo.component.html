@@ -1,0 +1,116 @@
+<div class="space-y-6">
+  <h1 class="title-caps font-display text-3xl font-extrabold text-primary">Modelo de recomendación</h1>
+
+  <div class="grid gap-5 lg:grid-cols-2">
+    <div class="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-5">
+      <h2 class="font-display text-lg font-bold text-primary">Pesos por dimensión</h2>
+      <p class="text-xs text-muted">0 apaga la dimensión, 1 es neutro, 3 la triplica.</p>
+
+      @for (d of DIMENSIONS; track d) {
+        <div class="space-y-1">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs capitalize text-text/85">{{ DIMENSION_LABEL[d] }}</span>
+            <span class="font-display text-xs font-bold text-primary">{{ weights()[d].toFixed(2) }}</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            [value]="weights()[d]"
+            (input)="setWeight(d, +$any($event.target).value)"
+            class="w-full accent-primary"
+          />
+        </div>
+      }
+
+      <div class="flex gap-2 pt-2">
+        <button
+          type="button"
+          (click)="saveWeights()"
+          [disabled]="saving()"
+          class="rounded-xl border border-transparent bg-gradient-to-b from-primary to-primary-deep px-4 py-2 text-sm font-bold text-[rgb(12,10,16)]"
+        >
+          Guardar pesos
+        </button>
+        <button type="button" (click)="resetWeights()" class="rounded-xl border border-border/70 px-4 py-2 text-sm font-semibold text-text/80">
+          Restablecer
+        </button>
+      </div>
+    </div>
+
+    <div class="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-5">
+      <h2 class="font-display text-lg font-bold text-primary">Enseñarle al modelo</h2>
+      <p class="text-xs text-muted">Cargá un perfil, indicá qué recomendó y qué correspondía.</p>
+
+      @for (d of DIMENSIONS; track d) {
+        <div class="flex items-center gap-2">
+          <span class="w-32 shrink-0 text-[11px] capitalize text-muted">{{ DIMENSION_LABEL[d] }}</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="vector()[d]"
+            (input)="setVectorDim(d, +$any($event.target).value)"
+            class="flex-1 accent-mystic"
+          />
+          <span class="w-8 shrink-0 text-right text-[11px] text-text/80">{{ (vector()[d] * 100) | number: '1.0-0' }}</span>
+        </div>
+      }
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">Recomendó</span>
+          <select
+            [ngModel]="predicted()"
+            (ngModelChange)="predicted.set($event)"
+            class="w-full rounded-xl border border-border/70 bg-surface/80 px-3 py-2.5 text-sm text-text"
+          >
+            @for (c of CAMPAIGN_PROFILES; track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">Correspondía</span>
+          <select
+            [ngModel]="actual()"
+            (ngModelChange)="actual.set($event)"
+            class="w-full rounded-xl border border-border/70 bg-surface/80 px-3 py-2.5 text-sm text-text"
+          >
+            @for (c of CAMPAIGN_PROFILES; track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        (click)="applyCorrection()"
+        [disabled]="saving() || predicted() === actual()"
+        class="w-full rounded-xl border border-mystic/60 bg-mystic/10 px-4 py-2.5 text-sm font-bold text-mystic disabled:opacity-40"
+      >
+        {{ predicted() === actual() ? "Elegí dos campañas distintas" : "Aplicar corrección" }}
+      </button>
+
+      @if (history().length > 0) {
+        <div class="space-y-1.5 border-t border-border/50 pt-3">
+          <div class="text-[10px] font-semibold uppercase tracking-widest text-muted">Últimas correcciones</div>
+          @for (h of history().slice(0, 8); track h.createdAt) {
+            <div class="flex items-center justify-between text-[11px] text-muted">
+              <span>{{ campaignName(h.predicted) }} → <span class="text-primary">{{ campaignName(h.actual) }}</span></span>
+              <span>{{ h.createdAt | date: 'shortDate' }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (msg()) {
+    <div class="rounded-2xl border border-primary/40 bg-primary/5 p-4 text-sm text-text/90">{{ msg() }}</div>
+  }
+</div>

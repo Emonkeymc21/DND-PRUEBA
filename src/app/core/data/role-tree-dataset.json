@@ -1,0 +1,672 @@
+{
+  "version": "8.0",
+  "root_node": "root",
+  "nodes": {
+    "root": {
+      "id": "root",
+      "title": "La Puerta de Piedra Vieja",
+      "text": "Frente a vos hay una puerta de piedra cubierta de musgo, con runas que ya nadie lee. El resto del grupo espera tu decisión.",
+      "options": [
+        {
+          "id": "opt_force",
+          "label": "Forzar la puerta a golpes",
+          "keywords": [
+            "forzar",
+            "empujar",
+            "romper",
+            "golpear",
+            "patada",
+            "abrir a la fuerza",
+            "tirar abajo"
+          ],
+          "next": "node_force_result",
+          "consequence": "Te lanzás contra la puerta con el hombro por delante.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.8,
+            "Estratega Erudito": 0.05,
+            "Líder Inspirador": 0.1
+          }
+        },
+        {
+          "id": "opt_examine",
+          "label": "Examinar las runas de cerca",
+          "keywords": [
+            "examinar",
+            "leer",
+            "estudiar",
+            "runas",
+            "inspeccionar",
+            "analizar",
+            "traducir",
+            "descifrar"
+          ],
+          "next": "node_examine_result",
+          "consequence": "Te acercás a leer los símbolos gastados por el tiempo.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.85,
+            "Guerrero Implacable": 0.05,
+            "Líder Inspirador": 0.1
+          }
+        },
+        {
+          "id": "opt_organize",
+          "label": "Organizar al grupo antes de entrar",
+          "keywords": [
+            "organizar",
+            "avisar",
+            "plan",
+            "equipo",
+            "juntos",
+            "coordinar",
+            "grupo",
+            "planear"
+          ],
+          "next": "node_organize_result",
+          "consequence": "Te das vuelta y hablás con el resto antes de dar el primer paso.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.85,
+            "Estratega Erudito": 0.1,
+            "Guerrero Implacable": 0.05
+          }
+        },
+        {
+          "id": "opt_listen_door",
+          "label": "Escuchar del otro lado antes de tocar nada",
+          "keywords": [
+            "escuchar",
+            "oido",
+            "pegar la oreja",
+            "silencio",
+            "atento",
+            "auscultar"
+          ],
+          "next": "node_listen_result",
+          "consequence": "Apoyás la oreja contra la piedra fría.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.6,
+            "Guerrero Implacable": 0.2,
+            "Líder Inspirador": 0.2
+          }
+        },
+        {
+          "id": "opt_search_alt",
+          "label": "Buscar otra entrada antes de decidir nada",
+          "keywords": [
+            "buscar otra entrada",
+            "rodear",
+            "perimetro",
+            "otra forma",
+            "alternativa"
+          ],
+          "next": "node_side_entrance",
+          "consequence": "Recorrés el muro buscando alguna grieta que nadie vio.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.5,
+            "Líder Inspirador": 0.35,
+            "Guerrero Implacable": 0.15
+          }
+        },
+        {
+          "id": "opt_pray",
+          "label": "Rezar o pedir permiso en voz alta",
+          "keywords": [
+            "rezar",
+            "pedir permiso",
+            "invocar",
+            "suplicar",
+            "orar"
+          ],
+          "next": "node_pray_result",
+          "consequence": "Cerrás los ojos un segundo y decís algo que ni vos esperabas decir.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.4,
+            "Líder Inspirador": 0.5,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_mark_door",
+          "label": "Marcar la puerta para volver después",
+          "keywords": [
+            "marcar",
+            "senal",
+            "dejar marca",
+            "recordar el camino"
+          ],
+          "next": "node_organize_result",
+          "consequence": "Rayás un símbolo en la piedra para no perder el lugar.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.55,
+            "Líder Inspirador": 0.3,
+            "Guerrero Implacable": 0.15
+          }
+        },
+        {
+          "id": "opt_wait_night",
+          "label": "Esperar a que oscurezca antes de entrar",
+          "keywords": [
+            "esperar",
+            "de noche",
+            "paciencia",
+            "aguardar"
+          ],
+          "next": "node_listen_result",
+          "consequence": "Decidís que la prudencia también es una decisión.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.65,
+            "Guerrero Implacable": 0.05,
+            "Líder Inspirador": 0.3
+          }
+        },
+        {
+          "id": "opt_offer_item",
+          "label": "Dejar una ofrenda frente a la puerta",
+          "keywords": [
+            "ofrenda",
+            "dejar algo",
+            "regalo",
+            "tributo"
+          ],
+          "next": "node_pray_result",
+          "consequence": "Dejás algo tuyo en el umbral, por si acaso.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.35,
+            "Líder Inspirador": 0.55,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_shout_challenge",
+          "label": "Gritar un desafío a quien esté del otro lado",
+          "keywords": [
+            "gritar",
+            "desafiar",
+            "provocar",
+            "reto"
+          ],
+          "next": "node_force_result",
+          "consequence": "Tu voz retumba contra la piedra vieja.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.7,
+            "Líder Inspirador": 0.2,
+            "Estratega Erudito": 0.1
+          }
+        }
+      ]
+    },
+    "node_force_result": {
+      "id": "node_force_result",
+      "title": "La Puerta Cede",
+      "text": "La madera vieja bajo la piedra cruje y cede de golpe. El polvo de siglos cae sobre vos mientras el pasadizo se abre a la oscuridad.",
+      "options": [
+        {
+          "id": "opt_charge",
+          "label": "Entrar de una, sin esperar",
+          "keywords": [
+            "entrar",
+            "avanzar",
+            "cargar",
+            "de una",
+            "sin esperar",
+            "rapido"
+          ],
+          "next": "node_corridor_ambush",
+          "consequence": "Entrás primero, sin mirar atrás.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.9,
+            "Líder Inspirador": 0.1
+          }
+        },
+        {
+          "id": "opt_listen",
+          "label": "Escuchar antes de avanzar",
+          "keywords": [
+            "escuchar",
+            "esperar",
+            "cauteloso",
+            "cuidado",
+            "silencio",
+            "atento"
+          ],
+          "next": "node_corridor_safe",
+          "consequence": "Te quedás quieto un segundo, escuchando qué hay del otro lado.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.7,
+            "Líder Inspirador": 0.2,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_light_torch",
+          "label": "Encender una antorcha antes de entrar",
+          "keywords": [
+            "antorcha",
+            "luz",
+            "fuego",
+            "iluminar",
+            "prender"
+          ],
+          "next": "node_corridor_safe",
+          "consequence": "La luz tiembla contra las paredes húmedas.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.55,
+            "Guerrero Implacable": 0.25,
+            "Líder Inspirador": 0.2
+          }
+        },
+        {
+          "id": "opt_send_first",
+          "label": "Mandar a alguien del grupo primero",
+          "keywords": [
+            "mandar",
+            "que vaya otro",
+            "adelante otro",
+            "enviar"
+          ],
+          "next": "node_corridor_ambush",
+          "consequence": "Señalás hacia adentro y esperás a que alguien se anime.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.4,
+            "Guerrero Implacable": 0.3,
+            "Estratega Erudito": 0.3
+          }
+        }
+      ]
+    },
+    "node_examine_result": {
+      "id": "node_examine_result",
+      "title": "El Significado de las Runas",
+      "text": "Las runas hablan de un pacto roto y una guardiana que todavía espera. Hay una palabra repetida tres veces: 'perdón'.",
+      "options": [
+        {
+          "id": "opt_speak_word",
+          "label": "Decir la palabra en voz alta",
+          "keywords": [
+            "decir",
+            "pronunciar",
+            "hablar",
+            "palabra",
+            "perdon",
+            "voz alta"
+          ],
+          "next": "node_door_opens_calm",
+          "consequence": "Pronunciás la palabra despacio, como si la puerta pudiera escucharte.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.6,
+            "Líder Inspirador": 0.3,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_ignore_runes",
+          "label": "Ignorar la advertencia y forzar igual",
+          "keywords": [
+            "ignorar",
+            "forzar",
+            "romper",
+            "no importa",
+            "de todas formas"
+          ],
+          "next": "node_force_result",
+          "consequence": "Decidís que las runas son sólo piedra vieja y empujás.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.7,
+            "Líder Inspirador": 0.1
+          }
+        },
+        {
+          "id": "opt_copy_runes",
+          "label": "Copiar las runas para estudiarlas después",
+          "keywords": [
+            "copiar",
+            "anotar",
+            "dibujar",
+            "transcribir"
+          ],
+          "next": "node_side_entrance",
+          "consequence": "Anotás los símbolos en tu cuaderno, por si sirven más adelante.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.75,
+            "Líder Inspirador": 0.15,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_ask_group_runes",
+          "label": "Preguntarle al grupo si alguien entiende más",
+          "keywords": [
+            "pregunto al grupo",
+            "alguien sabe",
+            "consultar",
+            "preguntar"
+          ],
+          "next": "node_organize_result",
+          "consequence": "Te das vuelta a ver si alguien reconoce la escritura.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.6,
+            "Estratega Erudito": 0.3,
+            "Guerrero Implacable": 0.1
+          }
+        }
+      ]
+    },
+    "node_organize_result": {
+      "id": "node_organize_result",
+      "title": "El Grupo Escucha",
+      "text": "Todos se acercan. Alguien pregunta quién va primero; otro pregunta si hay otra entrada. Por primera vez, el grupo se siente un equipo.",
+      "options": [
+        {
+          "id": "opt_scout",
+          "label": "Mandar a explorar el perímetro primero",
+          "keywords": [
+            "explorar",
+            "perimetro",
+            "rodear",
+            "buscar otra entrada",
+            "reconocer"
+          ],
+          "next": "node_side_entrance",
+          "consequence": "Alguien se separa un momento a revisar los alrededores.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.55,
+            "Líder Inspirador": 0.35,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_together",
+          "label": "Entrar todos juntos, en formación",
+          "keywords": [
+            "juntos",
+            "formacion",
+            "todos",
+            "unidos",
+            "en fila"
+          ],
+          "next": "node_corridor_safe",
+          "consequence": "El grupo entra en formación cerrada, cubriéndose entre todos.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.7,
+            "Guerrero Implacable": 0.2,
+            "Estratega Erudito": 0.1
+          }
+        },
+        {
+          "id": "opt_vote",
+          "label": "Someterlo a votación",
+          "keywords": [
+            "votar",
+            "decidir entre todos",
+            "democracia",
+            "que opinen"
+          ],
+          "next": "node_corridor_safe",
+          "consequence": "Cada uno levanta la mano por su opción favorita.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.65,
+            "Estratega Erudito": 0.25,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_assign_roles",
+          "label": "Asignar roles antes de avanzar",
+          "keywords": [
+            "asignar roles",
+            "quien va adelante",
+            "distribuir tareas"
+          ],
+          "next": "node_corridor_safe",
+          "consequence": "Repartís quién va adelante, quién cuida la espalda del grupo.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.6,
+            "Estratega Erudito": 0.35,
+            "Guerrero Implacable": 0.05
+          }
+        }
+      ]
+    },
+    "node_listen_result": {
+      "id": "node_listen_result",
+      "title": "El Sonido del Otro Lado",
+      "text": "Al principio no hay nada. Después, un goteo lento. Y algo más: una respiración que no es tuya.",
+      "options": [
+        {
+          "id": "opt_retreat_slow",
+          "label": "Alejarte despacio sin hacer ruido",
+          "keywords": [
+            "alejarme",
+            "retroceder",
+            "sin ruido",
+            "despacio"
+          ],
+          "next": "node_side_entrance",
+          "consequence": "Das un paso atrás, con cuidado de no pisar nada suelto.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.6,
+            "Líder Inspirador": 0.25,
+            "Guerrero Implacable": 0.1
+          }
+        },
+        {
+          "id": "opt_burst_in",
+          "label": "Entrar de golpe antes de que te escuchen a vos",
+          "keywords": [
+            "entrar de golpe",
+            "sorprender",
+            "irrumpir"
+          ],
+          "next": "node_corridor_ambush",
+          "consequence": "Decidís que la sorpresa es tuya, no de lo que sea que respira ahí.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.75,
+            "Estratega Erudito": 0.15,
+            "Líder Inspirador": 0.1
+          }
+        }
+      ]
+    },
+    "node_pray_result": {
+      "id": "node_pray_result",
+      "title": "Un Silencio Distinto",
+      "text": "El aire cambia. No sabés si te escuchó algo, pero la puerta parece un poco menos hostil que antes.",
+      "options": [
+        {
+          "id": "opt_continue_calm",
+          "label": "Seguir adelante con calma",
+          "keywords": [
+            "seguir",
+            "adelante",
+            "calma",
+            "continuar"
+          ],
+          "next": "node_door_opens_calm",
+          "consequence": "Avanzás sin apuro, como si algo te hubiera dado permiso.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.5,
+            "Estratega Erudito": 0.4,
+            "Guerrero Implacable": 0.1
+          }
+        }
+      ]
+    },
+    "node_corridor_ambush": {
+      "id": "node_corridor_ambush",
+      "title": "Emboscada",
+      "text": "Dos siluetas se separan de las sombras del corredor. No hubo tiempo de verlas venir.",
+      "options": [
+        {
+          "id": "opt_fight",
+          "label": "Pelear de inmediato",
+          "keywords": [
+            "pelear",
+            "atacar",
+            "luchar",
+            "combate",
+            "defenderme"
+          ],
+          "next": "node_ending_survivor",
+          "consequence": "No hay tiempo para pensar: reaccionás con el arma en la mano.",
+          "archetype_weight": {
+            "Guerrero Implacable": 0.9,
+            "Líder Inspirador": 0.1
+          }
+        },
+        {
+          "id": "opt_retreat_call",
+          "label": "Gritar para que el grupo se cubra",
+          "keywords": [
+            "gritar",
+            "avisar",
+            "cubrirse",
+            "retroceder",
+            "alertar"
+          ],
+          "next": "node_ending_leader",
+          "consequence": "Tu grito corta el aire antes que cualquier golpe.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.75,
+            "Guerrero Implacable": 0.2,
+            "Estratega Erudito": 0.05
+          }
+        },
+        {
+          "id": "opt_negotiate_ambush",
+          "label": "Levantar las manos y ofrecer hablar",
+          "keywords": [
+            "hablar",
+            "negociar",
+            "manos arriba",
+            "tregua",
+            "alto"
+          ],
+          "next": "node_ending_scholar",
+          "consequence": "Levantás las manos despacio, sin soltar del todo la guardia.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.55,
+            "Líder Inspirador": 0.35,
+            "Guerrero Implacable": 0.1
+          }
+        }
+      ]
+    },
+    "node_corridor_safe": {
+      "id": "node_corridor_safe",
+      "title": "El Corredor en Silencio",
+      "text": "No hay nada esperando del otro lado. Sólo polvo, piedra y un eco que devuelve sus propios pasos.",
+      "options": [
+        {
+          "id": "opt_press_on",
+          "label": "Seguir avanzando con cuidado",
+          "keywords": [
+            "avanzar",
+            "seguir",
+            "continuar",
+            "adelante",
+            "con cuidado"
+          ],
+          "next": "node_ending_scholar",
+          "consequence": "Seguís adelante, atento a cada sombra que se mueve distinto.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.6,
+            "Guerrero Implacable": 0.2,
+            "Líder Inspirador": 0.2
+          }
+        }
+      ]
+    },
+    "node_side_entrance": {
+      "id": "node_side_entrance",
+      "title": "La Entrada Lateral",
+      "text": "Hay una grieta en el muro, angosta, por la que se puede pasar sin que nadie del otro lado lo note.",
+      "options": [
+        {
+          "id": "opt_sneak",
+          "label": "Colarse sin hacer ruido",
+          "keywords": [
+            "sigilo",
+            "silencio",
+            "colarse",
+            "sin ruido",
+            "esconderse"
+          ],
+          "next": "node_ending_scholar",
+          "consequence": "Te deslizás por la grieta casi sin respirar.",
+          "archetype_weight": {
+            "Estratega Erudito": 0.7,
+            "Líder Inspirador": 0.2,
+            "Guerrero Implacable": 0.1
+          }
+        }
+      ]
+    },
+    "node_door_opens_calm": {
+      "id": "node_door_opens_calm",
+      "title": "La Puerta Responde",
+      "text": "La piedra tiembla apenas y se abre sin ruido, como si hubiera estado esperando exactamente esa palabra durante siglos.",
+      "options": [
+        {
+          "id": "opt_thank",
+          "label": "Agradecer antes de entrar",
+          "keywords": [
+            "agradecer",
+            "gracias",
+            "respeto",
+            "reverencia"
+          ],
+          "next": "node_ending_scholar",
+          "consequence": "Hacés una pausa breve antes de cruzar el umbral.",
+          "archetype_weight": {
+            "Líder Inspirador": 0.6,
+            "Estratega Erudito": 0.35,
+            "Guerrero Implacable": 0.05
+          }
+        }
+      ]
+    },
+    "node_ending_survivor": {
+      "id": "node_ending_survivor",
+      "title": "Final: El Que Sobrevive",
+      "text": "Ganaste el combate a fuerza de instinto puro. El grupo respira agitado, pero entero. La aventura sigue.",
+      "end": true,
+      "archetype_result": "Guerrero Implacable",
+      "options": []
+    },
+    "node_ending_leader": {
+      "id": "node_ending_leader",
+      "title": "Final: El Que Une",
+      "text": "Nadie salió herido. Tu grito llegó justo a tiempo, y ahora el grupo te mira distinto: como a alguien en quien se puede confiar.",
+      "end": true,
+      "archetype_result": "Líder Inspirador",
+      "options": []
+    },
+    "node_ending_scholar": {
+      "id": "node_ending_scholar",
+      "title": "Final: El Que Entiende",
+      "text": "Cruzaste sin despertar nada. Adelante, en la oscuridad, algo que llevaba siglos esperando por fin puede descansar.",
+      "end": true,
+      "archetype_result": "Estratega Erudito",
+      "options": []
+    }
+  },
+  "archetypes": {
+    "Guerrero Implacable": {
+      "tagline": "Primero entrás, después preguntás.",
+      "description": "Resolvés con acción directa. La duda te aburre; preferís el error rápido a la deliberación eterna.",
+      "suggested_class": "Bárbaro",
+      "master_tip": "Consecuencias rápidas y visibles. Si duda, tirá un monstruo."
+    },
+    "Estratega Erudito": {
+      "tagline": "Leíste la runa que nadie leyó.",
+      "description": "Pensás antes de actuar. Te importa el porqué de las cosas tanto como el cómo.",
+      "suggested_class": "Mago",
+      "master_tip": "Sembrá pistas reales y sostené el misterio; se va a dar cuenta si improvisás."
+    },
+    "Líder Inspirador": {
+      "tagline": "Sin vos el grupo se desarma.",
+      "description": "Te importa el equipo tanto como la meta. Hacés que los demás jueguen mejor.",
+      "suggested_class": "Clérigo",
+      "master_tip": "Dale NPCs con vínculos y decisiones que afecten al grupo entero, no sólo a su personaje."
+    }
+  }
+}

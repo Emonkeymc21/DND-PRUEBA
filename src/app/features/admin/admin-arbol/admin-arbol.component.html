@@ -1,0 +1,117 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="title-caps font-display text-3xl font-extrabold text-primary">Árbol narrativo</h1>
+    <p class="mt-2 max-w-2xl text-sm text-muted">
+      Cada nodo tiene un título, un texto y hasta 15 opciones. Cada opción define hacia qué nodo lleva y
+      qué palabras clave la disparan.
+    </p>
+  </div>
+
+  @if (loading) {
+    <div class="text-sm text-muted">Cargando árbol…</div>
+  } @else if (data) {
+    <div class="grid gap-5 lg:grid-cols-[280px_1fr]">
+      <div class="space-y-2 rounded-2xl border border-border/70 bg-card/70 p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-semibold uppercase tracking-widest text-muted">Nodos</span>
+          <button type="button" (click)="selectNode(null)" class="rounded-lg border border-border/60 px-3 py-1.5 text-xs">+ Nuevo</button>
+        </div>
+        <div class="max-h-[28rem] space-y-1 overflow-auto">
+          @for (id of allIds; track id) {
+            <button
+              type="button"
+              (click)="selectNode(id)"
+              class="w-full rounded-lg border px-3 py-2 text-left text-xs transition"
+              [ngClass]="selectedId === id ? 'border-primary/70 bg-primary/10 text-primary' : 'border-border/60 text-text/80 hover:border-primary/50'"
+            >
+              <div class="truncate font-semibold">{{ data.nodes[id].title || id }}</div>
+              <div class="truncate text-[10px] text-muted">{{ id }}{{ isOverlay(id) ? " · agregado" : "" }}</div>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-5">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">ID único</span>
+            <input
+              [(ngModel)]="draft.id"
+              [disabled]="selectedId !== null && !isOverlay(selectedId)"
+              placeholder="node_ejemplo"
+              class="w-full rounded-lg border border-border/70 bg-surface/80 px-3 py-2 text-sm text-text disabled:opacity-50"
+            />
+          </label>
+          <label class="flex items-center gap-2 pt-6">
+            <input type="checkbox" [(ngModel)]="draft.end" class="h-4 w-4 accent-primary" />
+            <span class="text-sm text-text/80">Es un final</span>
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Título</span>
+          <input [(ngModel)]="draft.title" class="w-full rounded-lg border border-border/70 bg-surface/80 px-3 py-2 text-sm text-text" />
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Texto</span>
+          <textarea [(ngModel)]="draft.text" rows="3" class="w-full resize-y rounded-lg border border-border/70 bg-surface/80 px-3 py-2 text-sm text-text"></textarea>
+        </label>
+
+        @if (draft.end) {
+          <label class="block">
+            <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">Arquetipo de este final</span>
+            <input [(ngModel)]="draft.archetype_result" class="w-full rounded-lg border border-border/70 bg-surface/80 px-3 py-2 text-sm text-text" />
+          </label>
+        } @else {
+          <div class="space-y-3 border-t border-border/50 pt-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-widest text-muted">Opciones ({{ draft.options.length }}/15)</span>
+              <button type="button" (click)="addOption()" [disabled]="draft.options.length >= 15" class="rounded-lg border border-border/60 px-3 py-1.5 text-xs">
+                + Opción
+              </button>
+            </div>
+
+            @for (opt of draft.options; track $index) {
+              <div class="space-y-2 rounded-lg border border-border/60 bg-surface/40 p-3">
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <input [(ngModel)]="opt.id" placeholder="id de la opción" class="rounded-lg border border-border/70 bg-bg/60 px-2.5 py-1.5 text-xs text-text" />
+                  <input [(ngModel)]="opt.next" placeholder="nodo siguiente (id)" class="rounded-lg border border-border/70 bg-bg/60 px-2.5 py-1.5 text-xs text-text" />
+                </div>
+                <input [(ngModel)]="opt.label" placeholder="Texto de la opción" class="w-full rounded-lg border border-border/70 bg-bg/60 px-2.5 py-1.5 text-xs text-text" />
+                <input
+                  [ngModel]="keywordsText[$index]"
+                  (ngModelChange)="updateKeywords($index, $event)"
+                  placeholder="palabras clave separadas por coma"
+                  class="w-full rounded-lg border border-border/70 bg-bg/60 px-2.5 py-1.5 text-xs text-text"
+                />
+                <textarea [(ngModel)]="opt.consequence" placeholder="Qué pasa cuando el jugador elige esto" rows="2" class="w-full resize-y rounded-lg border border-border/70 bg-bg/60 px-2.5 py-1.5 text-xs text-text"></textarea>
+                <button type="button" (click)="removeOption($index)" class="text-[11px] text-ember/85 underline underline-offset-4">Quitar opción</button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (msg) {
+          <p class="text-xs text-primary">{{ msg }}</p>
+        }
+
+        <div class="flex flex-wrap gap-2 border-t border-border/50 pt-4">
+          <button type="button" (click)="save()" [disabled]="saving" class="rounded-xl border border-transparent bg-gradient-to-b from-primary to-primary-deep px-4 py-2 text-sm font-bold text-[rgb(12,10,16)]">
+            {{ saving ? "Guardando…" : "Guardar nodo" }}
+          </button>
+          @if (selectedId && isOverlay(selectedId)) {
+            <button type="button" (click)="remove(selectedId)" class="rounded-xl border border-border/70 px-4 py-2 text-sm font-semibold text-text/80">Borrar</button>
+          }
+        </div>
+
+        @if (!data.persisted) {
+          <p class="text-xs text-muted">
+            Sin Upstash configurado en el backend, los nodos viven en memoria del proceso y se pierden en
+            el próximo reinicio del servidor.
+          </p>
+        }
+      </div>
+    </div>
+  }
+</div>

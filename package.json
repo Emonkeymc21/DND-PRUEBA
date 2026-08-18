@@ -1,39 +1,42 @@
 {
-  "name": "la-mesa-perdida",
+  "name": "la-mesa-perdida-angular",
   "version": "8.0.0",
   "private": true,
-  "type": "module",
-  "engines": {
-    "node": "20.x",
-    "npm": "10.x"
-  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "server": "node server/index.mjs",
+    "dev:all": "concurrently \"npm:server\" \"npm:start\""
   },
   "dependencies": {
-    "next": "15.5.7",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "zod": "3.25.3",
+    "@angular/animations": "^17.3.0",
+    "@angular/common": "^17.3.0",
+    "@angular/compiler": "^17.3.0",
+    "@angular/core": "^17.3.0",
+    "@angular/forms": "^17.3.0",
+    "@angular/platform-browser": "^17.3.0",
+    "@angular/platform-browser-dynamic": "^17.3.0",
+    "@angular/router": "^17.3.0",
+    "howler": "2.2.4",
+    "rxjs": "~7.8.1",
     "three": "0.169.0",
-    "howler": "2.2.4"
+    "tslib": "^2.6.2",
+    "zone.js": "~0.14.4"
   },
   "devDependencies": {
+    "@angular-devkit/build-angular": "^17.3.0",
+    "@angular/cli": "^17.3.0",
+    "@angular/compiler-cli": "^17.3.0",
+    "@types/howler": "2.2.11",
     "@types/node": "22.13.5",
-    "@types/react": "19.0.10",
-    "@types/react-dom": "19.0.4",
+    "@types/three": "0.169.0",
     "autoprefixer": "10.4.20",
-    "eslint": "9.20.1",
-    "eslint-config-next": "15.2.4",
+    "concurrently": "^8.2.2",
     "postcss": "8.5.3",
     "tailwindcss": "3.4.17",
-    "typescript": "5.7.3",
-    "@types/three": "0.169.0",
-    "@types/howler": "2.2.11"
+    "typescript": "5.4.5"
   }
 }

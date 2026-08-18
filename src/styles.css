@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 11 9 16;
+  --surface: 19 16 27;
+  --card: 26 22 36;
+  --border: 49 41 68;
+
+  --text: 237 228 211;
+  --muted: 166 156 176;
+
+  --primary: 201 162 39;
+  --primary-deep: 138 105 20;
+  --mystic: 139 106 209;
+  --ember: 166 62 40;
+}
+
+[data-theme="light"] {
+  --bg: 243 238 228;
+  --surface: 252 249 243;
+  --card: 255 253 249;
+  --border: 216 204 184;
+  --text: 32 26 22;
+  --muted: 104 94 86;
+  --primary: 138 105 20;
+  --primary-deep: 92 68 10;
+  --mystic: 94 62 158;
+  --ember: 150 52 32;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: rgb(var(--bg));
+  color: rgb(var(--text));
+  min-height: 100dvh;
+  margin: 0;
+  background-image:
+    radial-gradient(58% 42% at 78% 4%, rgb(var(--mystic) / 0.13) 0%, transparent 60%),
+    radial-gradient(48% 38% at 12% 12%, rgb(var(--primary) / 0.07) 0%, transparent 62%),
+    radial-gradient(70% 50% at 50% 104%, rgb(var(--ember) / 0.09) 0%, transparent 64%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3 {
+  font-family: "Cinzel", Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+.title-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.gold-gradient {
+  background: linear-gradient(to bottom, #f0dda4 0%, rgb(var(--primary)) 42%, rgb(var(--primary-deep)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 4px 14px rgb(0 0 0 / 0.85));
+}
+
+.edge-top {
+  position: relative;
+}
+.edge-top::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--primary) / 0.75), transparent);
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

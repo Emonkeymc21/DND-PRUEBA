@@ -1,0 +1,204 @@
+@if (status === 'sent' || status === 'queued') {
+  <div class="space-y-3 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-center">
+    <div class="text-4xl">🎲</div>
+    <div class="font-display text-lg font-extrabold text-primary">¡Listo, {{ firstName }}!</div>
+    <p class="text-sm text-text/80">
+      Ya tenemos tu postulación. Te escribimos a
+      <span class="font-semibold text-text">{{ form.value.contacto }}</span>
+      cuando armemos el grupo que te calce.
+    </p>
+  </div>
+} @else {
+  <form (ngSubmit)="submit()" [formGroup]="form" class="relative space-y-7">
+    <!-- Honeypot -->
+    <div aria-hidden="true" class="absolute h-0 w-0 overflow-hidden opacity-0">
+      <label for="website">No completar</label>
+      <input id="website" type="text" tabindex="-1" autocomplete="off" [(ngModel)]="honeypot" [ngModelOptions]="{ standalone: true }" />
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+          Tu nombre <span class="text-primary">*</span>
+        </span>
+        <input
+          formControlName="nombre"
+          maxlength="80"
+          autocomplete="name"
+          placeholder="Cómo te llamamos"
+          class="w-full rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
+        />
+      </label>
+
+      <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">
+          Discord o Instagram <span class="text-primary">*</span>
+        </span>
+        <input
+          formControlName="contacto"
+          maxlength="120"
+          placeholder="@usuario o tu tag de Discord"
+          class="w-full rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
+        />
+      </label>
+    </div>
+
+    <fieldset>
+      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+        Experiencia <span class="text-primary">*</span>
+      </legend>
+      <div class="grid gap-2 sm:grid-cols-3">
+        @for (opt of EXPERIENCIA; track opt.value) {
+          <button
+            type="button"
+            (click)="form.controls.experiencia.setValue(opt.value)"
+            [attr.aria-pressed]="form.value.experiencia === opt.value"
+            class="rounded-xl border px-4 py-3 text-left transition"
+            [ngClass]="form.value.experiencia === opt.value
+              ? 'border-primary bg-primary/10'
+              : 'border-border/70 hover:border-primary/60'"
+          >
+            <div class="text-sm font-bold text-text">{{ opt.label }}</div>
+            <div class="text-[11px] text-muted">{{ opt.hint }}</div>
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Sistema preferido</legend>
+      <div class="flex flex-wrap gap-2">
+        @for (opt of SISTEMA; track opt.value) {
+          <button
+            type="button"
+            (click)="form.controls.sistema.setValue(opt.value)"
+            [attr.aria-pressed]="form.value.sistema === opt.value"
+            class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="form.value.sistema === opt.value
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border/70 text-text/80 hover:border-primary/60'"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Temática</legend>
+      <div class="flex flex-wrap gap-2">
+        @for (opt of TEMATICA; track opt.value) {
+          <button
+            type="button"
+            (click)="toggleTematica(opt.value)"
+            [attr.aria-pressed]="tematicasSel.includes(opt.value)"
+            class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="tematicasSel.includes(opt.value)
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border/70 text-text/80 hover:border-primary/60'"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <div class="grid gap-6 sm:grid-cols-2">
+      <fieldset>
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Modalidad</legend>
+        <div class="flex flex-wrap gap-2">
+          @for (opt of MODALIDAD; track opt.value) {
+            <button
+              type="button"
+              (click)="form.controls.modalidad.setValue(opt.value)"
+              class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+              [ngClass]="form.value.modalidad === opt.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border/70 text-text/80 hover:border-primary/60'"
+            >
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Frecuencia</legend>
+        <div class="flex flex-wrap gap-2">
+          @for (opt of FRECUENCIA; track opt.value) {
+            <button
+              type="button"
+              (click)="form.controls.frecuencia.setValue(opt.value)"
+              class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+              [ngClass]="form.value.frecuencia === opt.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border/70 text-text/80 hover:border-primary/60'"
+            >
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </fieldset>
+    </div>
+
+    <fieldset>
+      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Disponibilidad horaria</legend>
+      <div class="flex flex-wrap gap-2">
+        @for (opt of DISPONIBILIDAD; track opt.value) {
+          <button
+            type="button"
+            (click)="toggleDisponibilidad(opt.value)"
+            class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="disponibilidadSel.includes(opt.value)
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border/70 text-text/80 hover:border-primary/60'"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+        Líneas rojas <span class="font-normal text-muted">(la mesa las respeta sin preguntar)</span>
+      </legend>
+      <div class="flex flex-wrap gap-2">
+        @for (opt of LINEAS_ROJAS; track opt.value) {
+          <button
+            type="button"
+            (click)="toggleLineaRoja(opt.value)"
+            class="rounded-full border px-4 py-2 text-sm font-semibold transition"
+            [ngClass]="lineasRojasSel.includes(opt.value)
+              ? 'border-ember bg-ember/10 text-ember'
+              : 'border-border/70 text-text/80 hover:border-ember/60'"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <label class="block">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted">Algo más</span>
+      <textarea
+        formControlName="notas"
+        rows="3"
+        maxlength="600"
+        placeholder="Horarios raros, si venís con un amigo…"
+        class="w-full resize-y rounded-xl border border-border/70 bg-surface/80 px-4 py-3 text-base text-text outline-none transition placeholder:text-muted/60 focus:border-primary/70"
+      ></textarea>
+    </label>
+
+    <div class="space-y-2">
+      <button
+        type="submit"
+        [disabled]="form.invalid || status === 'sending'"
+        class="w-full rounded-xl border border-transparent bg-gradient-to-b from-primary to-primary-deep px-5 py-4 text-base font-extrabold text-[rgb(12,10,16)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {{ status === 'sending' ? 'Enviando…' : 'Postularme' }}
+      </button>
+      <p class="text-center text-xs text-muted">Sólo usamos tus datos para contactarte por la mesa.</p>
+    </div>
+  </form>
+}

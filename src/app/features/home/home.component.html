@@ -1,0 +1,34 @@
+<div class="mx-auto max-w-4xl space-y-16 py-10">
+  <!-- Hero -->
+  <section class="text-center">
+    <h1 class="title-caps font-display text-4xl font-extrabold md:text-6xl">
+      <span class="gold-gradient">La Mesa Perdida</span>
+    </h1>
+    <p class="mx-auto mt-4 max-w-xl text-lg text-text/80">
+      Mesas de rol en español. ¿Nunca jugaste? Entrás igual.
+    </p>
+    <a
+      routerLink="/encrucijada"
+      class="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-primary/60 bg-primary/10 px-6 py-3 text-sm font-bold text-primary transition hover:bg-primary/20"
+    >
+      Probar una escena corta
+    </a>
+  </section>
+
+  <!-- Tirada del destino -->
+  <section class="rounded-2xl border border-border/70 bg-card/60 p-6 text-center">
+    <div class="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">Tu primera tirada</div>
+    <div class="flex justify-center">
+      <app-d20-dice [dc]="10" [size]="200" label="Tirar por el destino" (rolled)="onFateRoll($event)" />
+    </div>
+    @if (fate) {
+      <p class="mt-2 text-sm text-text/85">{{ fateMessage() }}</p>
+    }
+  </section>
+
+  <!-- Formulario -->
+  <section id="postularme" class="rounded-2xl border border-border/70 bg-card/60 p-6">
+    <h2 class="title-caps mb-4 text-center font-display text-2xl font-bold text-primary">Postulate</h2>
+    <app-signup-form source="home" />
+  </section>
+</div>
